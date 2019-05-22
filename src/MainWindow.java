@@ -1,30 +1,83 @@
+import java.awt.Color;
+import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
+import javax.swing.JTextArea;
 
-public class MainWindow extends JFrame// Ö÷´°¿Ú
+public class MainWindow extends JFrame// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 {
-	public MainWindow()// ¹¹Ôìº¯Êı£¬ÔÚÆäÖĞ´´½¨´°¿Ú
+	/**modified by zhangjian start*/
+	private JTextArea jta;
+	/**modified by zhangjian end*/
+	
+	public MainWindow()// ï¿½ï¿½ï¿½ìº¯ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ğ´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	{
-		setTitle("MeshÍøÂç¹ÜÀíÏµÍ³");// ÉèÖÃ´°¿ÚµÄ±êÌâ
-		setBounds(0, 0, 800, 600);// ÉèÖÃ´°¿ÚµÄÎ»ÖÃ
-		setLayout(null);// ¸ÄÎª¾ø¶ÔÎ»ÖÃ²¼¾Ö
+		setTitle("Meshç½‘ç»œç®¡ç†ç³»ç»Ÿ");// ï¿½ï¿½ï¿½Ã´ï¿½ï¿½ÚµÄ±ï¿½ï¿½ï¿½
+		setBounds(0, 0, 800, 600);// ï¿½ï¿½ï¿½Ã´ï¿½ï¿½Úµï¿½Î»ï¿½ï¿½
+		setLayout(null);// ï¿½ï¿½Îªï¿½ï¿½ï¿½ï¿½Î»ï¿½Ã²ï¿½ï¿½ï¿½
 
-		JButton b = new JButton();// ÊÖ¶¯ÏÂ·¢ÅäÖÃ°´Å¥
-		b.setBounds(10, 10, 310, 310);// ÉèÖÃ°´Å¥µÄÎ»ÖÃ
-		b.setText("ÏÂ·¢ÅäÖÃ");// °´Å¥ÉÏÏÔÊ¾µÄÎÄ×Ö
+		JButton b = new JButton();// ï¿½Ö¶ï¿½ï¿½Â·ï¿½ï¿½ï¿½ï¿½Ã°ï¿½Å¥
+		b.setBounds(10, 10, 300, 100);// ï¿½ï¿½ï¿½Ã´ï¿½ï¿½Úµï¿½Î»ï¿½ï¿½
+		b.setText("ä¸‹å‘é…ç½®");// ï¿½ï¿½Å¥ï¿½ï¿½ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 		b.addActionListener(new ActionListener()
 		{
-			public void actionPerformed(ActionEvent e)// °´Å¥±»µã»÷Ê±£¬ÒªÖ´ĞĞµÄ²Ù×÷
+			public void actionPerformed(ActionEvent e)// ï¿½ï¿½Å¥ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ÒªÖ´ï¿½ĞµÄ²ï¿½ï¿½ï¿½
 			{
 				Main.SendConfiguration();
 			}
 		});
-		add(b);// ½«Õâ¸ö°´Å¥Ìí¼Óµ½´°¿ÚÖĞ
+		add(b);// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å¥ï¿½ï¿½Óµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+		
+		
+		/**modified by zhangjian start*/
+		JButton b2 = new JButton();// ï¿½Ú¾Ó·ï¿½ï¿½Ö°ï¿½Å¥
+		b2.setBounds(10, 120, 300, 100);// ï¿½ï¿½ï¿½Ã°ï¿½Å¥ï¿½ï¿½Î»ï¿½ï¿½
+		b2.setText("é‚»å±…å‘ç°");// ï¿½ï¿½Å¥ï¿½ï¿½ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+		b2.addActionListener(new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)// ï¿½ï¿½Å¥ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ÒªÖ´ï¿½ĞµÄ²ï¿½ï¿½ï¿½
+			{
+				synchronized (Connections.sendCommandListLock)
+				{
+					for(ConnectionThreadSendCommand ctsc:Connections.sendCommandList)
+					{
+						ctsc.sendCommand("DISCOVER \r\n");
+					}					
+				}
+				
+			}
+		});
+		add(b2);// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å¥ï¿½ï¿½Óµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+		/**modified by zhangjian end*/
+		
+		
+		/**modified by zhangjian start*/
+		
+		jta=new JTextArea();
+		jta.setBounds(10, 230, 300, 30);
+		jta.setForeground(Color.BLACK);
+		jta.setEditable(false);
+		jta.setFont(new Font("å®‹ä½“",Font.CENTER_BASELINE,16));
+		jta.setText("æ­£å¸¸");
+		add(jta);		
+		
+		/**modified by zhangjian end*/
+		
 
-		setDefaultCloseOperation(EXIT_ON_CLOSE);// ÔÚµã»÷´°¿ÚµÄ¹Ø±Õ°´Å¥Ê±ÍË³ö³ÌĞò
-		setVisible(true);// ÏÔÊ¾´°¿Ú
+		setDefaultCloseOperation(EXIT_ON_CLOSE);// ï¿½Úµï¿½ï¿½ï¿½ï¿½ï¿½ÚµÄ¹Ø±Õ°ï¿½Å¥Ê±ï¿½Ë³ï¿½ï¿½ï¿½ï¿½ï¿½
+		setVisible(true);// ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½
 	}
+	
+	/**modified by zhangjian start*/
+	
+	public void showInfo(String s)
+	{
+		jta.setText(s);
+	}
+	
+	/**modified by zhangjian end*/
 }

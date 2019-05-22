@@ -10,43 +10,83 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Scanner;
 
-public class Main// Ö÷Àà
+import javax.xml.crypto.NodeSetData;
+
+public class Main// ï¿½ï¿½ï¿½ï¿½
 {
-	private static ServerThreadReceive str; // ÓÃÓÚ½ÓÊÕÁÚ¾ÓĞÅÏ¢µÄ·şÎñÆ÷Ïß³Ì
-	private static ServerThreadSendCommand stsc;// ÓÃÓÚ·¢ËÍ¿ØÖÆÃüÁîµÄ·şÎñÆ÷Ïß³Ì
+	private static ServerThreadReceive str; // ï¿½ï¿½ï¿½Ú½ï¿½ï¿½ï¿½ï¿½Ú¾ï¿½ï¿½ï¿½Ï¢ï¿½Ä·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß³ï¿½
+	private static ServerThreadSendCommand stsc;// ï¿½ï¿½ï¿½Ú·ï¿½ï¿½Í¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß³ï¿½
 	
-	public static ArrayList<NodeInfo> nodes;// ½ÚµãĞÅÏ¢µÄÁĞ±í
-	public static Object nodesLock;// ÁĞ±íµÄËø
+	public static ArrayList<NodeInfo> nodes;// ï¿½Úµï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½Ğ±ï¿½
+	public static Object nodesLock;// ï¿½Ğ±ï¿½ï¿½ï¿½ï¿½
 
 	private static MainWindow mainWindow;
-	
-	public static String rootMacaddr;
+	private static DataOperation dataOperation;
 	public static double[][][][] NeiInforArrary;
+	public static String rootMacaddr;
+	public static int radionum = 2;//æ”¹æˆå¯é…ç½®çš„
+	public static int nodenum = 0;//æ”¹æˆå¯é…ç½®çš„
 	public static int channel1 = 36;
 	public static int channel2 = 149;
+	public static double orithroughput = 500.0;
+	public static double Minthroughput = 100.0;
+	public static double throughput66 = 500.0;
+	public static double throughput75 = 300.0;
+	public static double attenuation = 0.15;
+	public static double minSNR = -66.0;
+	public static double  bottomSNR= -80.0;
+	public static int [] nodesignal;
+	public static int [][] radiosignal;
 	
-	public static void main(String[] args)// ³ÌĞòµÄÈë¿Úµã
+	public static void main(String[] args)// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Úµï¿½
 	{
+		int i = 0;
+		int j = 0;
 		
-
-		Connections.receiveList = new ArrayList<ConnectionThreadReceive>();// ³õÊ¼»¯Á¬½ÓÁĞ±í
+		nodesignal = new int [nodenum];
+		radiosignal = new int [nodenum][Main.radionum];
+		for(i = 0;i<nodenum;i++){
+			nodesignal[i] = 0;
+		}
+		for(i = 0;i<nodenum;i++){
+			for(j = 0;j<Main.radionum;j++){
+				radiosignal[i][j] = 0;
+			}
+		}
+		DataOperation.connect("jdbc:sqlite:MRMCmeshData.db");
+		Connections.receiveList = new ArrayList<ConnectionThreadReceive>();// ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ğ±ï¿½
 		Connections.receiveListLock = new Object();
 		Connections.sendCommandList = new ArrayList<ConnectionThreadSendCommand>();
 		Connections.sendCommandListLock = new Object();
-//ĞŞ¸Ä¸ù½ÚµãµØÖ·
-		rootMacaddr = "04:F0:21:39:C1:91";
+//ï¿½Ş¸Ä¸ï¿½ï¿½Úµï¿½ï¿½Ö·
 		
-		nodes = new ArrayList<NodeInfo>();// ³õÊ¼»¯½ÚµãĞÅÏ¢ÁĞ±í
-		nodesLock = new Object();// ³õÊ¼»¯ÁĞ±íµÄËø
+		
+		rootMacaddr = "04:F0:21:3D:B5:AD";
+		channel1 = 36;
+		channel2 = 149;
+		orithroughput = 500.0;
+		Minthroughput = 100.0;
+		throughput66 = 500.0;
+		throughput75 = 300.0;
+		attenuation = 0.15;
+		minSNR = -66.0;
+		bottomSNR= -80.0;
+		getconfig();
+		//Õ¹Ê¾ï¿½ï¿½ï¿½Ğµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
+		System.out.println("configs:"+rootMacaddr+" "+radionum+" "+nodenum+" "+channel1+" "+channel2+" "+orithroughput
+				+" "+Minthroughput+" "+throughput66+" "+throughput75+" "+attenuation+
+				" "+minSNR+" "+bottomSNR);
+		nodes = new ArrayList<NodeInfo>();// ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½Úµï¿½ï¿½ï¿½Ï¢ï¿½Ğ±ï¿½
+		nodesLock = new Object();// ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½Ğ±ï¿½ï¿½ï¿½ï¿½
 		//BFSofMRMC();
 
-		str = new ServerThreadReceive();// ´´½¨ÓÃÓÚ½ÓÊÕÁÚ¾ÓĞÅÏ¢µÄ·şÎñÆ÷Ïß³Ì
-		str.start();// Æô¶¯Ïß³Ì
+		str = new ServerThreadReceive();// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú½ï¿½ï¿½ï¿½ï¿½Ú¾ï¿½ï¿½ï¿½Ï¢ï¿½Ä·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß³ï¿½
+		str.start();// ï¿½ï¿½ï¿½ï¿½ï¿½ß³ï¿½
 
-		stsc = new ServerThreadSendCommand();// ´´½¨ÓÃÓÚ·¢ËÍ¿ØÖÆÃüÁîµÄ·şÎñÆ÷Ïß³Ì
-		stsc.start();// Æô¶¯Ïß³Ì
+		stsc = new ServerThreadSendCommand();// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú·ï¿½ï¿½Í¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß³ï¿½
+		stsc.start();// ï¿½ï¿½ï¿½ï¿½ï¿½ß³ï¿½
 
-		mainWindow = new MainWindow();// ´´½¨Ö÷´°¿Ú
+		mainWindow = new MainWindow();// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
 		Scanner scanner = new Scanner(System.in);
 		while (true)
@@ -55,14 +95,116 @@ public class Main// Ö÷Àà
 			System.out.println(command);
 			if (command.equals("send"))
 			{
+				dropinform();
 				System.out.println("Sending configurations to routers.");
 				SendConfiguration();
 			}
 		}
-		
 	}
+	public static void dropinform(){
+		int i,j = 0;
+		for(i = 0;i<Main.nodes.size();i++){
+			if(Main.nodesignal[i] == 0){
+				try {
+					DataOperation.dropNode(Main.nodes.get(i).nodeID);
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		}
+		for(i = 0;i<nodenum;i++){
+			for(j = 0;j<radionum;j++){
+				if(Main.radiosignal[i][j] == 0){
+					try {
+						DataOperation.dropNoderadio(Main.nodes.get(i).radioInfo.get(j).radioNumber);
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+	}
+	public static void getconfig()  // ï¿½ß³ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½Ö´ï¿½Ğ´Ëºï¿½ï¿½ï¿½
+	{
 
-	public static void SendConfiguration()// ÏÂ·¢ËùÓĞ½ÚµãµÄÅäÖÃ
+		String neighborinform = " ";
+		int j = 0;
+		String lines[] = new String[8];
+		String str1 = "serverconfig"; 
+		try {
+			FileReader fr = new FileReader(str1);
+			BufferedReader br = new BufferedReader(fr);   
+			try {
+				neighborinform = br.readLine();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}   
+			InputStream is;
+			Scanner scanner = null;
+			String line = neighborinform;
+			while (neighborinform != null) {
+				line = neighborinform;
+				line.replace("\r", ""); // È¥ï¿½ï¿½ï¿½ï¿½Î²ï¿½Ä»ï¿½ï¿½Ğ·ï¿½
+				line.replace("\n", "");
+				String[] parts = line.split(" "); // ï¿½Ô¿Õ¸ï¿½Îªï¿½Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô½ï¿½ï¿½Õµï¿½ï¿½ï¿½Ò»ï¿½Ğ½ï¿½ï¿½Ğ·Ö¸ï¿½
+				String configs = parts[0];
+				if (configs.equals("rootMacaddr")){
+					rootMacaddr = parts[1];
+				}
+				else if(configs.equals("nodenum")){
+					nodenum = Integer.parseInt(parts[1]);
+				}
+				else if(configs.equals("radionum")){
+					radionum = Integer.parseInt(parts[1]);
+				}
+				else if(configs.equals("channel1")){
+					channel1 = Integer.parseInt(parts[1]);
+				}
+				else if(configs.equals("channel2")){
+					channel2 = Integer.parseInt(parts[1]);
+				}
+				else if(configs.equals("orithroughput")){
+					orithroughput = Double.valueOf(parts[1]);
+				}
+				else if(configs.equals("Minthroughput")){
+					Minthroughput = Double.valueOf(parts[1]);
+				}
+				else if(configs.equals("throughput66")){
+					throughput66 = Double.valueOf(parts[1]);
+				}
+				else if(configs.equals("throughput75")){
+					throughput75 = Double.valueOf(parts[1]);
+				}
+				else if(configs.equals("attenuation")){
+					attenuation = Double.valueOf(parts[1]);
+				}
+				else if(configs.equals("minSNR")){
+					minSNR = Double.valueOf(parts[1]);
+				}
+				else if(configs.equals("bottomSNR")){
+					bottomSNR = Double.valueOf(parts[1]);
+				}
+				else continue;
+				j++;
+				try {
+					neighborinform = br.readLine();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}				
+			}
+
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} 
+	}
+	
+	
+
+	public static void SendConfiguration()// ï¿½Â·ï¿½ï¿½ï¿½ï¿½Ğ½Úµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	{
 		
 		
@@ -73,33 +215,37 @@ public class Main// Ö÷Àà
 		
 		BFSofMRMC();
 		
-		//SendToNode("04:F0:21:39:C1:91", "SETLINK 04:F0:21:39:C1:91#36#link201#ap#1 04:F0:21:39:C1:6B#149#link202#ap#0");
+		//SendToNode("04:F0:21:39:C1:91", "SETLINK 04:F0:21:39:C1:91##36#Link201#ap#1 04:F0:21:36:21:09#DISABLED");
+		//SendToNode("04:F0:21:39:C1:5B", "SETLINK 04:F0:21:39:C1:5B##36#Link201#sta#1 04:F0:21:39:C1:92#DISABLED");
 		//SendToNode("04:F0:21:39:C1:5F", "SETLINK 04:F0:21:39:C1:5F#36#link203#ap#0 04:F0:21:39:C1:60#149#link204#ap#1");
 		//SendToNode("04:F0:21:39:64:06", "SETLINK 04:F0:21:39:64:06#6#link204 04:F0:21:39:64:05#DISABLED");
 		//SendToNode("04:F0:21:39:64:26", "SETLINK 04:F0:21:39:64:26#6#link204 04:F0:21:39:64:25#DISABLED");
 		//SendToNode("04:F0:21:39:64:1C", "SETLINK 04:F0:21:39:64:1B#36#link204 04:F0:21:39:64:1F#36#link203");
 	}
-	public static void BFSofMRMC(){// MRMCµÄ³õ²½Ëã·¨£º¹ã¶ÈÓÅÏÈËÑË÷
-		//¶ÁÎÄ¼şµÄ·½Ê½
+	public static void BFSofMRMC(){// MRMCï¿½Ä³ï¿½ï¿½ï¿½ï¿½ã·¨ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+		//ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½Ä·ï¿½Ê½
 		//BFStestinit("");
-		//¼ÆÊı±êÖ¾
+		//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¾
 		int i,j,k,q= 0;
-		//¶ÓÁĞÍ·²¿ºÍÎ²²¿
+		int tmpj = -1,tmpk = -1;//ï¿½ï¿½ï¿½Ú»ï¿½ï¿½ï¿½Ô¤ï¿½ï¿½Ñ¡ï¿½ï¿½ï¿½Ú¾Ó½Úµï¿½
+		//ï¿½ï¿½ï¿½ï¿½Í·ï¿½ï¿½ï¿½ï¿½Î²ï¿½ï¿½
 		int front = 0;
 		int back = 0;
-		//radioÑ­»·±äÁ¿
+		//radioÑ­ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 		int elem = 0;
-		//ÓÃÓÚ»ñÈ¡Ã¿¸ö½ÚµãµÄÃ¿¸öÉäÆµĞÅÏ¢
+		//ï¿½ï¿½ï¿½Ú»ï¿½È¡Ã¿ï¿½ï¿½ï¿½Úµï¿½ï¿½Ã¿ï¿½ï¿½ï¿½ï¿½Æµï¿½ï¿½Ï¢
 		int a,b,c,d,e;
-		/*±êÊ¶·û£¬
-		flag ±íÊ¾¸Ã½ÚµãÓĞ¿ÉÒÔÁ¬½ÓµÄ×Ó½Úµã
-		flag1 Á¬½Óflag2
-		flag2 ÓÃÓÚ±êÊ¶½ÚµãËùÓĞÉäÆµ¶¼Ã»ÓĞ²ÎÓë¹ı×éÍø£¨×éÍøÆô¶¯µÄÊ±ºò£©
-		flag3 ÓÃÓÚ±êÊ¶£¬ÔÚÒ»´ÎÁÚ¾Ó½ÚµãÉ¨ÃèÖĞ£¬ÓÃÒ»¸ö½ÚµãµÄÆäËûÉäÆµÊÇ·ñÒÑ¾­±»¸Ã¸¸½ÚµãÁ¬½Ó
-				£¨·ÀÖ¹Í¬Ò»¸ö½ÚµãµÄ¶à¸öÉäÆµ±»Í¬Ò»¸ö¸¸½ÚµãÉäÆµÁ¬½Ó£©
+		int tmpb = -1;
+		
+		/*ï¿½ï¿½Ê¶ï¿½ï¿½ï¿½ï¿½
+		flag ï¿½ï¿½Ê¾ï¿½Ã½Úµï¿½ï¿½Ğ¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Óµï¿½ï¿½Ó½Úµï¿½
+		flag1 ï¿½ï¿½ï¿½ï¿½flag2
+		flag2 ï¿½ï¿½ï¿½Ú±ï¿½Ê¶ï¿½Úµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æµï¿½ï¿½Ã»ï¿½Ğ²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
+		flag3 ï¿½ï¿½ï¿½Ú±ï¿½Ê¶ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Ú¾Ó½Úµï¿½É¨ï¿½ï¿½ï¿½Ğ£ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Úµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æµï¿½Ç·ï¿½ï¿½Ñ¾ï¿½ï¿½ï¿½ï¿½Ã¸ï¿½ï¿½Úµï¿½ï¿½ï¿½ï¿½ï¿½
+				ï¿½ï¿½ï¿½ï¿½Ö¹Í¬Ò»ï¿½ï¿½ï¿½Úµï¿½Ä¶ï¿½ï¿½ï¿½ï¿½Æµï¿½ï¿½Í¬Ò»ï¿½ï¿½ï¿½ï¿½ï¿½Úµï¿½ï¿½ï¿½Æµï¿½ï¿½ï¿½Ó£ï¿½
 		*/
 		int flag,flag1,flag2,flag3 = 0;
-		//»ñÈ¡rootÔÚnodesÖĞµÄindex
+		//ï¿½ï¿½È¡rootï¿½ï¿½nodesï¿½Ğµï¿½index
 		int rootid = 0;
 		int visitednum = 0;
 		NodeInfo niTemp;
@@ -107,27 +253,37 @@ public class Main// Ö÷Àà
 		int radioNo = 0;
 		int nodeNum = 0;
 		int radioNum = 0;
+		double maxthroughput = -1;
+		double tmpthroughput;
 		RadioInfo radioTemp;
 		RadioInfo radioTemp1;
 		nodeNum = nodes.size();
-		NodeInfo nis = nodes.get(0);
-		radioNum = nis.radioInfo.size();
+		System.out.println("nodenum "+nodes.size());
+		for(i = 0;i<nodeNum;i++){
+			System.out.println("node "+nodes.get(i).nodeID+" "+nodes.get(i).radioInfo.size());
+			for (j = 0;j<nodes.get(i).radioInfo.size();j++){
+				System.out.println("radioinfor "+nodes.get(i).radioInfo.get(j).radioNumber);
+			}	
+			if(nodes.get(i).radioInfo.size()> radioNum){
+				radioNum = nodes.get(i).radioInfo.size();
+			}
+		}
+		radionum = radioNum;
 		int [][] visited = new int [nodeNum][radioNum];
 		int [][] signaled = new int [nodeNum][radioNum];
 		double[][] resultTemp = new double[nodeNum][radioNum];
 		String[] results = new String[nodeNum];
-		System.out.print(radioNum+" "+nodeNum);
-		
+		System.out.print( "Radio number:"+radioNum+" node number:"+nodeNum+"\n");
+		//Õ¹Ê¾ï¿½ï¿½Ç°Ì¨
 
 		
-		compose();
+		compose(nodeNum,radioNum);
 		for(a = 0;a<nodeNum;a++){
 			for(b = 0;b<radioNum;b++){
 				for(d = 0;d<nodeNum;d++){
 					for(e = 0;e<radioNum;e++){
 						System.out.print(NeiInforArrary[a][d][b][e]+" ");
 					}
-					System.out.print("&");
 				}
 				System.out.println(b+"b");
 			}
@@ -158,7 +314,7 @@ public class Main// Ö÷Àà
 		i = 0;
 		j = 0;
 		
-		//Ä¬ÈÏ¸ù½ÚµãÖ»Ê¹ÓÃÒ»¸öÉäÆµÓÃÓÚ×éÍø£¬¹Ê½ûÓÃÆäËûµÄÉäÆµ
+		//Ä¬ï¿½Ï¸ï¿½ï¿½Úµï¿½Ö»Ê¹ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Æµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æµ
 		for(NodeInfo ni: Main.nodes){
 			if(ni.nodeID.equalsIgnoreCase(rootMacaddr)){
 				for(j = 1;j<radioNum;j++){
@@ -176,9 +332,11 @@ public class Main// Ö÷Àà
 		}
 		i = 0;
 		j = 0;
+		Main.nodes.get(rootid).rank = 0;
+		Main.nodes.get(rootid).expthroughput = 1000;
 		que[0] = rootid;
 		back+=1;
-		//¶ÓÁĞ£¬ÔªËØÊÇnodeID£¬Ã¿´ÎÕÒµÄÉäÆµÊÇ t%node-number£¬ÕÒÕâ¸öneighborÏÂµÄ
+		//ï¿½ï¿½ï¿½Ğ£ï¿½Ôªï¿½ï¿½ï¿½ï¿½nodeIDï¿½ï¿½Ã¿ï¿½ï¿½ï¿½Òµï¿½ï¿½ï¿½Æµï¿½ï¿½ t%node-numberï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½neighborï¿½Âµï¿½
 		while(front != back){
 			flag1 = 0;
 			flag2 = 0;
@@ -186,14 +344,14 @@ public class Main// Ö÷Àà
 			String radioMac = null;
 			int channel = 0;
 			String ssid;
-			//elem¶ÔÓ¦µÄÊÇ½Úµã
+			//elemï¿½ï¿½Ó¦ï¿½ï¿½ï¿½Ç½Úµï¿½
 			elem = que[front];
 			front += 1;
 			niTemp = nodes.get(elem);
 			for (i = 0;i<radioNum;i++){
-				//ÅĞ¶Ï½ÚµãµÄµÚi¸öÉäÆµÊÇ·ñÅĞ¶Ï¹ı£¬²¢ÇÒ¸ÃÉäÆµÓĞÁÚ¾Ó
+				//ï¿½Ğ¶Ï½Úµï¿½Äµï¿½iï¿½ï¿½ï¿½ï¿½Æµï¿½Ç·ï¿½ï¿½Ğ¶Ï¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò¸ï¿½ï¿½ï¿½Æµï¿½ï¿½ï¿½Ú¾ï¿½
 				if (visited[elem][i] == 0 && niTemp.radioInfo.get(i).neighborList.size()>0) {
-					//ÁÚ¾ÓÅĞ¶Ï
+					//ï¿½Ú¾ï¿½ï¿½Ğ¶ï¿½
 					for(a = 0;a<nodeNum;a++){
 						for (b = 0;b<radioNum;b++){
 							if(NeiInforArrary[elem][a][i][b] != 0){
@@ -205,10 +363,10 @@ public class Main// Ö÷Àà
 								}
 							}
 							if(visitednum == radioNum){
-								flag2 = 1;//¸ÃÁÚ¾Ó½ÚµãµÄËùÓĞÉäÆµ¶¼Ã»ÓĞ±»×é¹ıÍø£¬¸Ã½ÚµãµÄ¸ÃÉäÆµ¿ÉÒÔ×éÍø
+								flag2 = 1;//ï¿½ï¿½ï¿½Ú¾Ó½Úµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æµï¿½ï¿½Ã»ï¿½Ğ±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã½Úµï¿½Ä¸ï¿½ï¿½ï¿½Æµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 								/*
-								 Èç¹û¸ÃÁÚ¾Ó½ÚµãµÄÆäËûÉäÆµ±»×é¹ıÍø,Ôò»áĞÎ³É»·Â·
-								 »òÕßËµ£¬Ä³½ÚµãµÄÄ³¸öÉäÆµÔÚ×éÍøÊ±£¬Æä¿É×éÍøµÄÁÚ¾Ó½ÚµãÒ»¶¨ÊÇÍêÈ«Ã»ÓĞ×é¹ıÍøµÄ½Úµã
+								 ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú¾Ó½Úµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½Î³É»ï¿½Â·
+								 ï¿½ï¿½ï¿½ï¿½Ëµï¿½ï¿½Ä³ï¿½Úµï¿½ï¿½Ä³ï¿½ï¿½ï¿½ï¿½Æµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú¾Ó½Úµï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È«Ã»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä½Úµï¿½
 								 */
 								break;
 							}
@@ -221,14 +379,14 @@ public class Main// Ö÷Àà
 						if(i == 0) channel = channel1;
 						else channel = channel2;
 						flag1 = 1;
-						break;//ÖØÑ¡Ã»ÓĞ½ÓÈëÍøÂçµÄ½Úµã
+						break;//ï¿½ï¿½Ñ¡Ã»ï¿½Ğ½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä½Úµï¿½
 					}
 					else{
 						visited[elem][i] = 1;
 						continue;
 					}
 				}
-				//¸ÃÉäÆµÃ»±»·ÃÎÊ¹ı£¬ÇÒÃ»ÓĞÁÚ¾Ó
+				//ï¿½ï¿½ï¿½ï¿½ÆµÃ»ï¿½ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½ï¿½ï¿½ï¿½Ã»ï¿½ï¿½ï¿½Ú¾ï¿½
 				else if (visited[elem][i] == 0 && niTemp.radioInfo.get(i).neighborList.size()== 0) {
 					
 					visited[elem][i] = 1;
@@ -239,24 +397,11 @@ public class Main// Ö÷Àà
 				continue;
 			}
 			flag = 0;
-			//»ñÈ¡macµØÖ·µÄ×îºóÁ½Î»£¬ÓÃÓÚ×é³Éssid
+			//ï¿½ï¿½È¡macï¿½ï¿½Ö·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ssid
 			String[] submac = radioMac.split(":");
 			ssid = "Link" + submac[submac.length-1];
 			System.out.println(ssid);
 			radioTemp = niTemp.radioInfo.get(i);
-			/*
-			for(a = 0;a<nodeNum;a++){
-				for(b = 0;b<radioNum;b++){
-					for(d = 0;d<nodeNum;d++){
-						for(e = 0;e<radioNum;e++){
-							System.out.print(NeiInforArrary[a][d][b][e]+" ");
-						}
-						System.out.print("&");
-					}
-					System.out.println(b+"b");
-				}
-				System.out.println(a+"a");
-			}*/
 			for(NeighborInfo nei : radioTemp.neighborList){
 				for(j = 0;j<nodeNum;j++){
 					niTemp1 = nodes.get(j);
@@ -264,142 +409,219 @@ public class Main// Ö÷Àà
 						radioTemp1 = niTemp1.radioInfo.get(k);
 						System.out.println(radioTemp1.radioNumber+" "+nei.neighborMac);
 						if(radioTemp1.radioNumber.equalsIgnoreCase(nei.neighborMac)){
-							//ÓÃÓÚ·ÀÖ¹Í¬Ò»¸ö½ÚµãµÄ²»Í¬ÉäÆµÁ¬½ÓÏàÍ¬µÄ¸¸½ÚµãÉäÆµ
+							//ï¿½ï¿½ï¿½Ú·ï¿½Ö¹Í¬Ò»ï¿½ï¿½ï¿½Úµï¿½Ä²ï¿½Í¬ï¿½ï¿½Æµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¬ï¿½Ä¸ï¿½ï¿½Úµï¿½ï¿½ï¿½Æµ
 							flag3 = 0;
 							for (q = 0;q<radioNum;q++){
 								if(q != k){
-									if (resultTemp[j][q] == 1){
-										flag3 = 1;
-									}
+									if (visited[j][q] == 1) flag3 = 1;
 								}
 							}
-							if(flag3 == 1){
-								break;
-							}
-							if(visited[j][k] == 0){
-								flag = 1;//±íÊ¾¸Ã½ÚµãÓĞ¿ÉÒÔÁ¬½ÓµÄ×Ó½Úµã
-								//Ó¦µ±Ôö¼Ó¹ØÓÚĞÅÔë±ÈµÄÅĞ¶Ï
+							if(flag3 == 1) break;
+							if(visited[j][k] == 0 && NeiInforArrary[elem][j][i][k]>minSNR && NeiInforArrary[j][elem][k][i]>minSNR){
+								Main.nodes.get(j).rank = Main.nodes.get(elem).rank + 1;
+								Main.nodes.get(j).expthroughput = orithroughput*(1-(Main.nodes.get(j).rank-1)*attenuation);
+								flag = 1;//ï¿½ï¿½Ê¾ï¿½Ã½Úµï¿½ï¿½Ğ¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Óµï¿½ï¿½Ó½Úµï¿½
 								nodes.get(j).radioInfo.get(k).assignedssid = ssid;
-								nodes.get(j).radioInfo.get(k).assignedChannel = channel;
 								nodes.get(j).radioInfo.get(k).direction = "up";
-								if (NeiInforArrary[elem][j][i][k]<=-70.0 || NeiInforArrary[j][elem][k][i]<=-70.0){
-									for( a= 0;a<nodeNum;a++){
-										for (b = 0;b<radioNum;b++){
-											if(a != elem && b != i){
-												if(NeiInforArrary[a][j][b][k]>-70){
-													signaled[j][k] = 1;
-												}
-											}
-										}
-									}
-								}
-								resultTemp[j][k] = 1;
-								
+								resultTemp[j][k] = 1;								
 								visited[j][k] = 1;
 								que[back] = j;
 								back+=1;
-								
 							}
 						}
 					}
 				}
 				
-				//»ñÈ¡neiÀïÃæ£¬¹ØÓÚnodeµÄĞÅÏ¢
+				//ï¿½ï¿½È¡neiï¿½ï¿½ï¿½æ£¬ï¿½ï¿½ï¿½ï¿½nodeï¿½ï¿½ï¿½ï¿½Ï¢
 			}
 			if(flag == 1){
 				nodes.get(elem).radioInfo.get(i).assignedssid = ssid;
-				nodes.get(elem).radioInfo.get(i).assignedChannel = channel;
 				nodes.get(elem).radioInfo.get(i).direction = "down";
 				resultTemp[elem][i] = 1;
+				visited[elem][i] = 1;
 			}
 			else{
 				resultTemp[elem][i] = 0;
+				visited[elem][i] = 0;
 			}
 		}
+		flag = 0;
 		for(a = 0;a<nodeNum;a++){
-			for(b = 0;b<radioNum;b++){
-				for(d = 0;d<nodeNum;d++){
-					for(e = 0;e<radioNum;e++){
-						System.out.print(NeiInforArrary[a][d][b][e]+" ");
-					}
-					System.out.print("&");
+			visitednum = 0;
+			for (b = 0;b<radioNum;b++){
+				if(resultTemp[a][b] == 0){
+					visitednum++;
 				}
-				System.out.println(b+"b");
 			}
-			System.out.println(a+"a");
-		}
-		for(a = 0;a<nodeNum;a++){
-			for(b = 0;b<radioNum;b++){
-				if(signaled[a][b] ==1){
-					for(c = 0;c<nodeNum;c++){
-						for(d = 0;d<radioNum;d++){
-							if(NeiInforArrary[c][a][d][b]>-70.0 && NeiInforArrary[a][c][b][d]>-70.0 && 
-									NeiInforArrary[c][a][d][b]<0.0 && NeiInforArrary[a][c][b][d]<0.0 &&
-									nodes.get(c).radioInfo.get(d).direction == "down"){
-								System.out.println(NeiInforArrary[c][a][d][b]+" %% "+NeiInforArrary[a][c][b][d]);
-								nodes.get(a).radioInfo.get(b).assignedssid = nodes.get(c).radioInfo.get(d).assignedssid;
-								nodes.get(a).radioInfo.get(b).assignedChannel = nodes.get(c).radioInfo.get(d).assignedChannel;
-								System.out.println(" && ");
-								System.out.println(nodes.get(a).radioInfo.get(b).radioNumber+" "+nodes.get(c).radioInfo.get(d).radioNumber);
-								//nodes.get(a).radioInfo.get(b).direction = "up";
-								//»¹²»ÊÇ×îÓÅµÄ£¬
-
+			if(visitednum == radioNum){
+				flag = 1;
+				maxthroughput = -1;
+				tmpthroughput = 0;
+				tmpj = -1;
+				tmpk = -1;
+				tmpb = -1;
+				//ï¿½Ã½Úµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æµï¿½ï¿½Ã»ï¿½Ğ²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½Ô¤ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+				for(b = 0;b<radioNum;b++){
+					for(NeighborInfo nei : Main.nodes.get(a).radioInfo.get(b).neighborList){
+						for(j = 0;j<nodeNum;j++){
+							niTemp1 = nodes.get(j);
+							for(k = 0;k<radioNum;k++){
+								radioTemp1 = niTemp1.radioInfo.get(k);
+								System.out.println(radioTemp1.radioNumber+" "+nei.neighborMac);
+								if(radioTemp1.radioNumber.equalsIgnoreCase(nei.neighborMac)){
+									if(NeiInforArrary[a][j][b][k]> bottomSNR && NeiInforArrary[j][a][k][b]> bottomSNR){
+										System.out.println(resultTemp[j][k]+" "+resultTemp[j][1-k]+" "+radioTemp1.direction);
+										if((resultTemp[j][k] == 1 || resultTemp[j][1-k] == 1)&& 
+												(radioTemp1.direction.equalsIgnoreCase("down") || radioTemp1.direction.equalsIgnoreCase("none"))){
+											
+											if(niTemp1.expthroughput > throughput75){
+												//??
+												tmpthroughput = throughput75*(1-attenuation);
+											}
+											else if(niTemp1.expthroughput <= throughput75){
+												//??
+												tmpthroughput = niTemp1.expthroughput*(1-attenuation);
+											}
+											if (tmpthroughput > maxthroughput){
+												maxthroughput = tmpthroughput;
+												tmpb = b;
+												tmpj = j;
+												tmpk = k;
+											}	
+										}
+										else continue;
+									}
+								}
+									
 							}
 						}
-				    }
-			    }
+					}
+				}
+			}
+			if (maxthroughput >= Minthroughput){
+				if(nodes.get(tmpj).radioInfo.get(tmpk).direction.equalsIgnoreCase("down")){
+					nodes.get(a).radioInfo.get(tmpb).direction = "up";
+					nodes.get(a).radioInfo.get(tmpb).assignedssid = nodes.get(tmpj).radioInfo.get(tmpk).assignedssid;
+					nodes.get(a).expthroughput = maxthroughput;
+					nodes.get(a).rank = nodes.get(tmpj).rank + 1;
+					resultTemp[a][tmpb] = 1;
+					visited[a][tmpb] = 1;
+				}
+				else if(nodes.get(tmpj).radioInfo.get(tmpk).direction.equalsIgnoreCase("none")){
+					nodes.get(tmpj).radioInfo.get(tmpk).direction = "down";
+					String[] submac = nodes.get(tmpj).radioInfo.get(tmpk).radioNumber.split(":");
+					nodes.get(tmpj).radioInfo.get(tmpk).assignedssid = "Link" + submac[submac.length-1];
+					resultTemp[tmpj][tmpk] = 1;
+					visited[tmpj][tmpk] = 1;
+					
+					nodes.get(a).radioInfo.get(tmpb).direction = "up";
+					nodes.get(a).expthroughput = maxthroughput;
+					nodes.get(a).rank = nodes.get(tmpj).rank+1;
+					nodes.get(a).radioInfo.get(tmpb).assignedssid = nodes.get(tmpj).radioInfo.get(tmpk).assignedssid;
+					resultTemp[a][tmpb] = 1;
+					visited[a][tmpb] = 1;
+				}
 			}
 		}
+		for(a = 0;a<nodeNum;a++){
+			visitednum = 0;
+			for (b = 0;b<radioNum;b++){
+				if(resultTemp[a][b] == 0){
+					visitednum++;
+				}
+			}
+			if(visitednum == radioNum){
+				System.out.println("can not network");
+				mainWindow.showInfo("can not network");
+				return;
+			}
+			else{
+				if(flag == 1){
+					System.out.println("some bad links");
+					mainWindow.showInfo("some bad links");
+				}
+				else if(flag == 0){
+					System.out.println("good network");
+					mainWindow.showInfo("good network");
+				}
+			}
+			
+		}
+		//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä½Úµã£¬
+		results = getresult(nodeNum,radioNum,resultTemp,results);
+		System.out.println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
+		for(a = 0;a<nodeNum;a++){
+			System.out.println("rank "+ Main.nodes.get(a).rank);
+			System.out.println("throughput "+ Main.nodes.get(a).expthroughput);
+			System.out.println(results[a]);
+			
+		}
+		for(a = 0;a<nodeNum;a++){
+			SendToNode(nodes.get(a).nodeID, results[a]);
+		}
+		return;
+	}
+		//ï¿½ï¿½ï¿½ï¿½Î³ï¿½ï¿½Ö·ï¿½ï¿½ï¿½ï¿½ï¿½ssidï¿½ï¿½channel
+		//String 
+	public static String[] getresult(int nodeNum,int radioNum,double[][] resultTemp,String[] results)// ï¿½ï¿½ï¿½ï¿½Î³ï¿½
+	{
+		RadioInfo radioTemp1;
+		int a,b = 0;
 		for(a = 0;a<nodeNum;a++){
 			results[a] = "SETLINK ";
 			for(b = 0;b<radioNum;b++){
 				//String subRadioMac = nodes.get(elem).radioInfo.get(i).assignedssid.substring(0, 4);
 				if (resultTemp[a][b] == 1){
 					radioTemp1 =  nodes.get(a).radioInfo.get(b);
-					results[a] += radioTemp1.radioNumber+"#"+radioTemp1.assignedChannel+"#"+radioTemp1.assignedssid+"#";
-					/**modified by zhangjian start*/
+					results[a] += radioTemp1.radioNumber+"#";
 					if(radioTemp1.direction.equals("up"))
 					{
 						radioTemp1.mode="sta";
-						nodes.get(a).radioInfo.get(b).mode = "ap";
-						radioTemp1.WDS = 0;
-						nodes.get(a).radioInfo.get(b).WDS = 0;
-						
+						nodes.get(a).radioInfo.get(b).mode = "sta";
+						if (nodes.get(a).rank %2 == 0){
+							radioTemp1.assignedChannel=149;
+							nodes.get(a).radioInfo.get(b).assignedChannel = 149;
+						}
+						else if (nodes.get(a).rank %2 == 1){
+							radioTemp1.assignedChannel=36;
+							nodes.get(a).radioInfo.get(b).assignedChannel = 36;
+						}
 					}
 					else if(radioTemp1.direction.equals("down"))
 					{
 						radioTemp1.mode="ap";
 						nodes.get(a).radioInfo.get(b).mode = "ap";
-						radioTemp1.WDS = 1;
-						nodes.get(a).radioInfo.get(b).WDS = 1;
+						if (nodes.get(a).rank %2 == 0){
+							radioTemp1.assignedChannel=36;
+							nodes.get(a).radioInfo.get(b).assignedChannel = 36;
+						}
+						else if (nodes.get(a).rank %2 == 1){
+							radioTemp1.assignedChannel=149;
+							nodes.get(a).radioInfo.get(b).assignedChannel = 149;
+						}
 					}
+					radioTemp1.WDS = 1;
+					nodes.get(a).radioInfo.get(b).WDS = 1;
+					radioTemp1.disabled = 0;
+					DataOperation.setradio(nodes.get(a).nodeID, radioTemp1);
 					//radioTemp1.WDS=1;
-					results[a] += radioTemp1.mode + "#" + radioTemp1.WDS + " ";
-					/**modified by zhangjian end*/
-					
-					
+					results[a] += radioTemp1.assignedChannel+"#"+radioTemp1.assignedssid+"#"+radioTemp1.mode + "#" + radioTemp1.WDS + " ";
 					System.out.println(results[a]);
 				}
 				else{
 					radioTemp1 =  nodes.get(a).radioInfo.get(b);
 					results[a] += radioTemp1.radioNumber+"#"+"DISABLED"+" ";
+					radioTemp1.disabled = 1;
 					System.out.println(results[a]);
 				}
 			}
 			results[a] = results[a].substring(0, results[a].length()-1);
-			System.out.println(results[a]);
+			//System.out.println(results[a]);
 		}
-		System.out.println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
-		for(a = 0;a<nodeNum;a++){
-			System.out.println(results[a]);
-		}
-		for(a = 0;a<nodeNum;a++){
-			SendToNode(nodes.get(a).nodeID, results[a]);
-		}
+		return results;
 	}
-		//×éºÏĞÎ³É×Ö·û´®¡£ssid£¬channel
-		//String 
-	public static boolean queEmpty(int que[])// ×éºÏĞÎ³É
+	
+	public static boolean queEmpty(int que[])// ï¿½ï¿½ï¿½ï¿½Î³ï¿½
 	{
 		int i = 0; 
 		for(i = 0;i<que.length;i++){
@@ -419,7 +641,7 @@ public class Main// Ö÷Àà
 		}
 	}*/
 	
-	public static void compose()// ×éºÏĞÎ³É
+	public static void compose(int nodenumber,int radionumber)// ï¿½ï¿½ï¿½ï¿½Î³ï¿½
 	{
 		int a,b,c,d,e;
 		int neiNum;
@@ -428,12 +650,12 @@ public class Main// Ö÷Àà
 		System.out.println("send here");
 		NodeInfo ni = nodes.get(0);
 		NodeInfo nis;
-		NeiInforArrary = new double[nodes.size()][nodes.size()][ni.radioInfo.size()][ni.radioInfo.size()];
-		for(a = 0;a<nodes.size();a++){
-			for(b = 0;b<ni.radioInfo.size();b++){
-				for(d = 0;d<nodes.size();d++){
-					for(e = 0;e<ni.radioInfo.size();e++){
-						NeiInforArrary[a][d][b][e] = 0.0;
+		NeiInforArrary = new double[nodenumber][nodenumber][radionumber][radionumber];
+		for(a = 0;a<nodenumber;a++){
+			for(b = 0;b<radionumber;b++){
+				for(d = 0;d<nodenumber;d++){
+					for(e = 0;e<radionumber;e++){
+						NeiInforArrary[a][d][b][e] = -95.0;
 					}
 				}	
 			}
@@ -450,8 +672,8 @@ public class Main// Ö÷Àà
 						nis = nodes.get(d);
 						for(e = 0;e<nis.radioInfo.size();e++){
 							ras = nis.radioInfo.get(e);
-							System.out.println(nei.neighborMac+" "+ras.radioNumber);
-							System.out.println(nei.neighborMac.equalsIgnoreCase(ras.radioNumber));
+							//System.out.println(nei.neighborMac+" "+ras.radioNumber);
+							//System.out.println(nei.neighborMac.equalsIgnoreCase(ras.radioNumber));
 							if(nei.neighborMac.equalsIgnoreCase(ras.radioNumber)){
 								NeiInforArrary[a][d][b][e] = nei.signal;
 							}
@@ -462,12 +684,12 @@ public class Main// Ö÷Àà
 		}
 	}
 	
-	private static void SendToNode(String nodeid, String command)// ÏòÄ³¸öÖ¸¶¨µÄ½Úµã·¢ËÍÒ»ÌõÃüÁî
+	private static void SendToNode(String nodeid, String command)// ï¿½ï¿½Ä³ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½Ä½Úµã·¢ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	{
 		ConnectionThreadSendCommand ctsc = null;
-		synchronized (Connections.sendCommandListLock)// ¸ø·¢ËÍÃüÁîÁ¬½ÓÁĞ±í¼ÓËø
+		synchronized (Connections.sendCommandListLock)// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ğ±ï¿½ï¿½ï¿½ï¿½
 		{
-			for (ConnectionThreadSendCommand c : Connections.sendCommandList)// ÔÚ·¢ËÍÃüÁîÁ¬½ÓÁĞ±íÖĞ£¬ÕÒµ½nodeidÏàÍ¬µÄÁ¬½Ó
+			for (ConnectionThreadSendCommand c : Connections.sendCommandList)// ï¿½Ú·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ğ±ï¿½ï¿½Ğ£ï¿½ï¿½Òµï¿½nodeidï¿½ï¿½Í¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 			{
 				System.out.println("nodeID : "+c.nodeID);
 				System.out.println("nodeid : "+nodeid);
@@ -484,12 +706,12 @@ public class Main// Ö÷Àà
 			return;
 		}
 		System.out.println("send here!");
-		ctsc.sendCommand(command);// ·¢ËÍÃüÁî
+		ctsc.sendCommand(command);// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	}
 
 	
 	
-	public static void BFStestinit(String neighborinform)  // Ïß³ÌÔËĞĞÊ±£¬Ö´ĞĞ´Ëº¯Êı
+	public static void BFStestinit(String neighborinform)  // ï¿½ß³ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½Ö´ï¿½Ğ´Ëºï¿½ï¿½ï¿½
 	{
 		int j = 0;
 		String lines[] = new String[8];
@@ -520,44 +742,46 @@ public class Main// Ö÷Àà
 			String line = neighborinform;
 			//neighborinform = lines[0];
 		//is = neighborinform;
-		//is = connection.getInputStream(); // »ñÈ¡TCPÁ¬½ÓµÄÊäÈëÁ÷
+		//is = connection.getInputStream(); // ï¿½ï¿½È¡TCPï¿½ï¿½ï¿½Óµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 		//System.out.print("aaaa\n");
 		//System.out.print(is);
-		//scanner = new Scanner(is); // ÓÃScanner°ü×°ÊäÈëÁ÷
-		//while (true) // Ò»Ö±Ñ­»·£¬Ã¿´Î¶ÁÈ¡Ò»ĞĞ
+		//scanner = new Scanner(is); // ï¿½ï¿½Scannerï¿½ï¿½×°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+		//while (true) // Ò»Ö±Ñ­ï¿½ï¿½ï¿½ï¿½Ã¿ï¿½Î¶ï¿½È¡Ò»ï¿½ï¿½
 			while (neighborinform != null) {
 			
 				line = neighborinform;
 				System.out.println(line);
 				
 				//System.out.print(line);
-				line.replace("\r", ""); // È¥³ıĞĞÎ²µÄ»»ĞĞ·û
+				line.replace("\r", ""); // È¥ï¿½ï¿½ï¿½ï¿½Î²ï¿½Ä»ï¿½ï¿½Ğ·ï¿½
 				line.replace("\n", "");
 				//line = "NEIGHBOR 04:F0:21:39:64:1C 04:F0:21:39:64:1B 36 04:f0:21:39:64:1f"
 				//		+ "#-28#-95#780.000000#VHT-MCS$9$80MHz$VHT-NSS$2#866.000000#VHT-MCS$9$80MHz$short$GI$VHT-NSS$2";
-				String[] parts = line.split(" "); // ÒÔ¿Õ¸ñÎª·Ö¸ô·û£¬¶Ô½ÓÊÕµ½µÄÒ»ĞĞ½øĞĞ·Ö¸î
+				String[] parts = line.split(" "); // ï¿½Ô¿Õ¸ï¿½Îªï¿½Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô½ï¿½ï¿½Õµï¿½ï¿½ï¿½Ò»ï¿½Ğ½ï¿½ï¿½Ğ·Ö¸ï¿½
 				String command = parts[0];
 				System.out.println("command : "+command);
-				if (command.equals("NEIGHBOR")) // Èç¹ûÕâÒ»ĞĞÊÇÁÚ¾ÓĞÅÏ¢
+				if (command.equals("NEIGHBOR")) // ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½Ú¾ï¿½ï¿½ï¿½Ï¢
 				{
 
 					boolean found = false;
 					NodeInfo foundni = null;
 					System.out.println(Main.nodes.size());
-					//´òÓ¡ĞÅÏ¢
-					for (NodeInfo ni : Main.nodes)// ÔÚ½ÚµãÁĞ±íÖĞ²éÕÒÕâ¸ö½Úµã
+					//ï¿½ï¿½Ó¡ï¿½ï¿½Ï¢
+					for (NodeInfo ni : Main.nodes)// ï¿½Ú½Úµï¿½ï¿½Ğ±ï¿½ï¿½Ğ²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Úµï¿½
 					{
-						if (ni.nodeID.equals(parts[1]))// Èç¹ûÕÒµ½£¬ÔòÌø³öÑ­»·
+						if (ni.nodeID.equals(parts[1]))// ï¿½ï¿½ï¿½ï¿½Òµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ­ï¿½ï¿½
 						{
 							found = true;
 							foundni = ni;
 							break;
 						}
 					}
-					if (found == false) // Èç¹ûÃ»ÓĞÕÒµ½£¬Ôò´´½¨Ò»¸ö£¬²¢Ìí¼Óµ½½ÚµãÁĞ±íÖĞ
+					if (found == false) // ï¿½ï¿½ï¿½Ã»ï¿½ï¿½ï¿½Òµï¿½ï¿½ï¿½ï¿½ò´´½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Óµï¿½ï¿½Úµï¿½ï¿½Ğ±ï¿½ï¿½ï¿½
 					{
 						foundni = new NodeInfo();
 						foundni.nodeID = parts[1];
+						foundni.rank = 0;
+						foundni.expthroughput = 0;
 						System.out.println("foundni.nodeID : "+foundni.nodeID);
 						foundni.radioInfo = new ArrayList<RadioInfo>();
 						Main.nodes.add(foundni);
@@ -565,47 +789,50 @@ public class Main// Ö÷Àà
 
 					found = false;
 					RadioInfo foundri = null;
-					for (RadioInfo ri : foundni.radioInfo)// ²éÕÒÄ³¸ö½ÚµãµÄÄ³¸öradio
+					for (RadioInfo ri : foundni.radioInfo)// ï¿½ï¿½ï¿½ï¿½Ä³ï¿½ï¿½ï¿½Úµï¿½ï¿½Ä³ï¿½ï¿½radio
 					{
 						if ((ri.radioNumber.equals(parts[2]))
-								&& (ri.assignedChannel == Integer.decode(parts[3]).intValue()))// Èç¹ûÕÒµ½£¨ĞèÒªradioµÄmacµØÖ·ºÍĞÅµÀºÅ¶¼Æ¥Åä£©
+								&& (ri.assignedChannel == Integer.decode(parts[3]).intValue()))// ï¿½ï¿½ï¿½ï¿½Òµï¿½ï¿½ï¿½ï¿½ï¿½Òªradioï¿½ï¿½macï¿½ï¿½Ö·ï¿½ï¿½ï¿½Åµï¿½ï¿½Å¶ï¿½Æ¥ï¿½ä£©
 						{
 							found = true;
 							foundri = ri;
 						}
 					}
-					if (found == false)// Èç¹ûÃ»ÓĞÕÒµ½£¬Ôò´´½¨Ò»¸ö£¬²¢Ìí¼Óµ½radioÁĞ±íÖĞ
+					if (found == false)// ï¿½ï¿½ï¿½Ã»ï¿½ï¿½ï¿½Òµï¿½ï¿½ï¿½ï¿½ò´´½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Óµï¿½radioï¿½Ğ±ï¿½ï¿½ï¿½
 					{
 						foundri = new RadioInfo();
 						foundri.radioNumber = parts[2];
 						System.out.println("foundri.radioNumber : "+foundri.radioNumber);
+						foundri.direction = "none";
+						foundri.mode = "none";
+						foundri.WDS = 1;
 						foundri.assignedChannel = Integer.decode(parts[3]).intValue();
 						foundri.neighborList = new ArrayList<NeighborInfo>();
 						foundni.radioInfo.add(foundri);
-						//´òÓ¡ĞÅÏ¢
+						//ï¿½ï¿½Ó¡ï¿½ï¿½Ï¢
 					}
 
-					for (int i = 4; i < parts.length; i++)// ´¦ÀíÁÚ¾ÓĞÅÏ¢µÄÊ£Óà²¿·Ö
+					for (int i = 4; i < parts.length; i++)// ï¿½ï¿½ï¿½ï¿½ï¿½Ú¾ï¿½ï¿½ï¿½Ï¢ï¿½ï¿½Ê£ï¿½à²¿ï¿½ï¿½
 					{
 						String s = parts[i];
 						if(s.equals("NONEIGHBOR")){
 							break;
 						}
-						//´òÓ¡ĞÅÏ¢
-						String[] parts2 = s.split("#");// ½«ÁÚ¾ÓĞÅÏ¢ÒÔ¾®ºÅÎª·Ö¸ô·û·Ö¿ª
+						//ï¿½ï¿½Ó¡ï¿½ï¿½Ï¢
+						String[] parts2 = s.split("#");// ï¿½ï¿½ï¿½Ú¾ï¿½ï¿½ï¿½Ï¢ï¿½Ô¾ï¿½ï¿½ï¿½Îªï¿½Ö¸ï¿½ï¿½ï¿½ï¿½Ö¿ï¿½
 						found = false;
 						NeighborInfo foundni2 = null;
-						//´òÓ¡ĞÅÏ¢
-						for (NeighborInfo ni : foundri.neighborList)// ÔÚÏÖÓĞµÄÁÚ¾ÓÁĞ±íÖĞ²éÕÒÕâ¸öÁÚ¾Ó
+						//ï¿½ï¿½Ó¡ï¿½ï¿½Ï¢
+						for (NeighborInfo ni : foundri.neighborList)// ï¿½ï¿½ï¿½ï¿½ï¿½Ğµï¿½ï¿½Ú¾ï¿½ï¿½Ğ±ï¿½ï¿½Ğ²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú¾ï¿½
 						{
-							if (ni.neighborMac.equals(parts2[0]))// Èç¹ûÕÒµ½£¬ÔòÌø³öÑ­»·
+							if (ni.neighborMac.equals(parts2[0]))// ï¿½ï¿½ï¿½ï¿½Òµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ­ï¿½ï¿½
 							{
 								found = true;
 								foundni2 = ni;
 								break;
 							}
 						}
-						if (found == false)// Èç¹ûÃ»ÓĞÕÒµ½£¬ÔòĞÂ´´½¨Ò»¸öÁÚ¾ÓĞÅÏ¢ÏîÄ¿
+						if (found == false)// ï¿½ï¿½ï¿½Ã»ï¿½ï¿½ï¿½Òµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â´ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Ú¾ï¿½ï¿½ï¿½Ï¢ï¿½ï¿½Ä¿
 						{
 							foundni2 = new NeighborInfo();
 							foundni2.neighborMac = parts2[0];
@@ -623,10 +850,10 @@ public class Main// Ö÷Àà
 						foundni2.tx_QAM = parts2[4];
 						foundni2.rx_rate = Double.parseDouble(parts2[5]);
 						foundni2.rx_QAM = parts2[6];
-						foundni2.rate = 0.5*foundni2.tx_rate;// ´æ´¢ÁÚ¾ÓµÄĞÅÏ¢
+						foundni2.rate = 0.5*foundni2.tx_rate;// ï¿½æ´¢ï¿½Ú¾Óµï¿½ï¿½ï¿½Ï¢
 						System.out.println("foundni2 : r:"+foundni2.rate+" s:"+foundni2.signal +" n:"+foundni2.noise +" t:"+
 						foundni2.tx_rate +" tq:"+foundni2.tx_QAM +" r:"+foundni2.rx_rate +" rq:"+foundni2.rx_QAM );
-						//´òÓ¡ĞÅÏ¢
+						//ï¿½ï¿½Ó¡ï¿½ï¿½Ï¢
 					}
 				}
 				j++;
@@ -647,16 +874,16 @@ public class Main// Ö÷Àà
 	}
 }
 
-class Connections// Á¬½ÓµÄÁĞ±í
+class Connections// ï¿½ï¿½ï¿½Óµï¿½ï¿½Ğ±ï¿½
 {
-	public static ArrayList<ConnectionThreadReceive> receiveList;// ÓÃÓÚ½ÓÊÕÁÚ¾ÓĞÅÏ¢µÄÁ¬½ÓÁĞ±í
-	public static Object receiveListLock;// ÁĞ±íµÄËø
+	public static ArrayList<ConnectionThreadReceive> receiveList;// ï¿½ï¿½ï¿½Ú½ï¿½ï¿½ï¿½ï¿½Ú¾ï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ğ±ï¿½
+	public static Object receiveListLock;// ï¿½Ğ±ï¿½ï¿½ï¿½ï¿½
 
-	public static ArrayList<ConnectionThreadSendCommand> sendCommandList;// ÓÃÓÚ·¢ËÍ¿ØÖÆÃüÁîµÄÁ¬½ÓÁĞ±í
-	public static Object sendCommandListLock;// ÁĞ±íµÄËø
+	public static ArrayList<ConnectionThreadSendCommand> sendCommandList;// ï¿½ï¿½ï¿½Ú·ï¿½ï¿½Í¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ğ±ï¿½
+	public static Object sendCommandListLock;// ï¿½Ğ±ï¿½ï¿½ï¿½ï¿½
 }
 
-class ServerThreadReceive extends Thread // ´ËÏß³Ì¼àÌıÓÃÓÚ½ÓÊÕÁÚ¾ÓĞÅÏ¢µÄ¶Ë¿Ú£¬²¢½ÓÊÜĞÂÁ¬½Ó
+class ServerThreadReceive extends Thread // ï¿½ï¿½ï¿½ß³Ì¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú½ï¿½ï¿½ï¿½ï¿½Ú¾ï¿½ï¿½ï¿½Ï¢ï¿½Ä¶Ë¿Ú£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 {
 	@Override
 	public void run()
@@ -678,107 +905,133 @@ class ServerThreadReceive extends Thread // ´ËÏß³Ì¼àÌıÓÃÓÚ½ÓÊÕÁÚ¾ÓĞÅÏ¢µÄ¶Ë¿Ú£¬²¢
 		catch (Exception e)
 		{
 			e.printStackTrace();
-			System.out.println("ÔÚ½ÓÊÕÁÚ¾ÓĞÅÏ¢·şÎñÆ÷Ïß³ÌÖĞ³öÏÖÒì³£");
+			System.out.println("ï¿½Ú½ï¿½ï¿½ï¿½ï¿½Ú¾ï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß³ï¿½ï¿½Ğ³ï¿½ï¿½ï¿½ï¿½ì³£");
 		}
 	}
 }
 
 class ConnectionThreadReceive extends Thread
 {
-	private Socket connection; // Óë¿Í»§¶Ë½¨Á¢µÄÁ¬½Ó
+	private Socket connection; // ï¿½ï¿½Í»ï¿½ï¿½Ë½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
-	ConnectionThreadReceive(Socket socket) // ¹¹Ôì·½·¨½ÓÊÜÒ»¸öÓë¿Í»§¶ËµÄÁ¬½Ó×÷Îª²ÎÊı
+	ConnectionThreadReceive(Socket socket) // ï¿½ï¿½ï¿½ì·½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Í»ï¿½ï¿½Ëµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îªï¿½ï¿½ï¿½ï¿½
 	{
 		connection = socket;
 	}
 
 	@Override
-	public void run() // Ïß³ÌÔËĞĞÊ±£¬Ö´ĞĞ´Ëº¯Êı
+	public void run() // ï¿½ß³ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½Ö´ï¿½Ğ´Ëºï¿½ï¿½ï¿½
 	{
+		int i = 0;
+		int j = 0;
+		
+		//äºŒç»´æ•°ç»„
 		InputStream is;
 		Scanner scanner = null;
 		try
 		{
-			is = connection.getInputStream(); // »ñÈ¡TCPÁ¬½ÓµÄÊäÈëÁ÷
+			
+			i = 0;
+			j = 0;
+			is = connection.getInputStream(); // ï¿½ï¿½È¡TCPï¿½ï¿½ï¿½Óµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 			System.out.print("aaaa\n");
 			//System.out.print(is);
-			scanner = new Scanner(is); // ÓÃScanner°ü×°ÊäÈëÁ÷
-			while (true) // Ò»Ö±Ñ­»·£¬Ã¿´Î¶ÁÈ¡Ò»ĞĞ
+			scanner = new Scanner(is); // ï¿½ï¿½Scannerï¿½ï¿½×°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+			while (true) // Ò»Ö±Ñ­ï¿½ï¿½ï¿½ï¿½Ã¿ï¿½Î¶ï¿½È¡Ò»ï¿½ï¿½
 			{
 				String line = scanner.nextLine();
 				System.out.print(line);
-				line.replace("\r", ""); // È¥³ıĞĞÎ²µÄ»»ĞĞ·û
+				line.replace("\r", ""); // È¥ï¿½ï¿½ï¿½ï¿½Î²ï¿½Ä»ï¿½ï¿½Ğ·ï¿½
 				line.replace("\n", "");
 				//line = "NEIGHBOR 04:F0:21:39:64:1C 04:F0:21:39:64:1B 36 04:f0:21:39:64:1f"
 				//		+ "#-28#-95#780.000000#VHT-MCS$9$80MHz$VHT-NSS$2#866.000000#VHT-MCS$9$80MHz$short$GI$VHT-NSS$2";
-				String[] parts = line.split(" "); // ÒÔ¿Õ¸ñÎª·Ö¸ô·û£¬¶Ô½ÓÊÕµ½µÄÒ»ĞĞ½øĞĞ·Ö¸î
+				String[] parts = line.split(" "); // ï¿½Ô¿Õ¸ï¿½Îªï¿½Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô½ï¿½ï¿½Õµï¿½ï¿½ï¿½Ò»ï¿½Ğ½ï¿½ï¿½Ğ·Ö¸ï¿½
 				String command = parts[0];
 				System.out.println("command : "+command);
-				if (command.equals("NEIGHBOR")) // Èç¹ûÕâÒ»ĞĞÊÇÁÚ¾ÓĞÅÏ¢
+				if (command.equals("NEIGHBOR")) // ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½Ú¾ï¿½ï¿½ï¿½Ï¢
 				{
 					synchronized (Main.nodesLock)
 					{
 						boolean found = false;
 						NodeInfo foundni = null;
-						//´òÓ¡ĞÅÏ¢
-						for (NodeInfo ni : Main.nodes)// ÔÚ½ÚµãÁĞ±íÖĞ²éÕÒÕâ¸ö½Úµã
+						//ï¿½ï¿½Ó¡ï¿½ï¿½Ï¢
+						i = 0;
+						for (NodeInfo ni : Main.nodes)// ï¿½Ú½Úµï¿½ï¿½Ğ±ï¿½ï¿½Ğ²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Úµï¿½
 						{
-							if (ni.nodeID.equals(parts[1]))// Èç¹ûÕÒµ½£¬ÔòÌø³öÑ­»·
+							if (ni.nodeID.equals(parts[1]))// ï¿½ï¿½ï¿½ï¿½Òµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ­ï¿½ï¿½
 							{
+								Main.nodesignal[i] = 1;
 								found = true;
 								foundni = ni;
 								break;
 							}
+							i+=1;
 						}
-						if (found == false) // Èç¹ûÃ»ÓĞÕÒµ½£¬Ôò´´½¨Ò»¸ö£¬²¢Ìí¼Óµ½½ÚµãÁĞ±íÖĞ
+						if (found == false) // ï¿½ï¿½ï¿½Ã»ï¿½ï¿½ï¿½Òµï¿½ï¿½ï¿½ï¿½ò´´½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Óµï¿½ï¿½Úµï¿½ï¿½Ğ±ï¿½ï¿½ï¿½
 						{
 							foundni = new NodeInfo();
 							foundni.nodeID = parts[1];
+							foundni.rank = 0;
+							foundni.expthroughput = 0;
 							System.out.println("foundni.nodeID : "+foundni.nodeID);
 							foundni.radioInfo = new ArrayList<RadioInfo>();
+							DataOperation.appendnode(foundni);
 							Main.nodes.add(foundni);
 						}
 
 						found = false;
 						RadioInfo foundri = null;
-						for (RadioInfo ri : foundni.radioInfo)// ²éÕÒÄ³¸ö½ÚµãµÄÄ³¸öradio
+						j = 0;
+						for (RadioInfo ri : foundni.radioInfo)// ï¿½ï¿½ï¿½ï¿½Ä³ï¿½ï¿½ï¿½Úµï¿½ï¿½Ä³ï¿½ï¿½radio
 						{
-							if ((ri.radioNumber.equals(parts[2]))
-									&& (ri.assignedChannel == Integer.decode(parts[3]).intValue()))// Èç¹ûÕÒµ½£¨ĞèÒªradioµÄmacµØÖ·ºÍĞÅµÀºÅ¶¼Æ¥Åä£©
-							{//???ĞÅµÀÒ²ÒªÒ»ÖÂ£¿ÊÇ·ñÒ»¶¨ÏàÍ¬
+							if (ri.radioNumber.equals(parts[2]))// ï¿½ï¿½ï¿½ï¿½Òµï¿½ï¿½ï¿½ï¿½ï¿½Òªradioï¿½ï¿½macï¿½ï¿½Ö·ï¿½ï¿½ï¿½Åµï¿½ï¿½Å¶ï¿½Æ¥ï¿½ä£©
+							 
+							{//???ï¿½Åµï¿½Ò²ÒªÒ»ï¿½Â£ï¿½ï¿½Ç·ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Í¬
 								found = true;
 								foundri = ri;
+								foundri.disabled = 0;
+								if(i != Main.nodes.size()){
+									Main.radiosignal[i][j] = 1;
+								}
 							}
+							j++;
 						}
-						if (found == false)// Èç¹ûÃ»ÓĞÕÒµ½£¬Ôò´´½¨Ò»¸ö£¬²¢Ìí¼Óµ½radioÁĞ±íÖĞ
+						//åœ¨è¿™é‡Œï¼Œæ—§çš„radioä¿¡æ¯è¦è¢«æ›¿æ¢æ‰ï¼ï¼ï¼
+						if (found == false)// ï¿½ï¿½ï¿½Ã»ï¿½ï¿½ï¿½Òµï¿½ï¿½ï¿½ï¿½ò´´½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Óµï¿½radioï¿½Ğ±ï¿½ï¿½ï¿½
 						{
+							
 							foundri = new RadioInfo();
 							foundri.radioNumber = parts[2];
 							System.out.println("foundri.radioNumber : "+foundri.radioNumber);
+							foundri.direction = "none";
+							foundri.mode = "none";
+							foundri.WDS = 1;
+							foundri.disabled = 0;
 							foundri.assignedChannel = Integer.decode(parts[3]).intValue();
 							foundri.neighborList = new ArrayList<NeighborInfo>();
 							foundni.radioInfo.add(foundri);
-							//´òÓ¡ĞÅÏ¢
+							DataOperation.appendradio(1,foundni.nodeID, foundri);
+							//ï¿½ï¿½Ó¡ï¿½ï¿½Ï¢
 						}
-
-						for (int i = 4; i < parts.length; i++)// ´¦ÀíÁÚ¾ÓĞÅÏ¢µÄÊ£Óà²¿·Ö
+						foundri.disabled = 0;
+						for (i = 4; i < parts.length; i++)// ï¿½ï¿½ï¿½ï¿½ï¿½Ú¾ï¿½ï¿½ï¿½Ï¢ï¿½ï¿½Ê£ï¿½à²¿ï¿½ï¿½
 						{
 							String s = parts[i];
-							//´òÓ¡ĞÅÏ¢
-							String[] parts2 = s.split("#");// ½«ÁÚ¾ÓĞÅÏ¢ÒÔ¾®ºÅÎª·Ö¸ô·û·Ö¿ª
+							//ï¿½ï¿½Ó¡ï¿½ï¿½Ï¢
+							String[] parts2 = s.split("#");// ï¿½ï¿½ï¿½Ú¾ï¿½ï¿½ï¿½Ï¢ï¿½Ô¾ï¿½ï¿½ï¿½Îªï¿½Ö¸ï¿½ï¿½ï¿½ï¿½Ö¿ï¿½
 							found = false;
 							NeighborInfo foundni2 = null;
-							//´òÓ¡ĞÅÏ¢
-							for (NeighborInfo ni : foundri.neighborList)// ÔÚÏÖÓĞµÄÁÚ¾ÓÁĞ±íÖĞ²éÕÒÕâ¸öÁÚ¾Ó
+							//ï¿½ï¿½Ó¡ï¿½ï¿½Ï¢
+							for (NeighborInfo ni : foundri.neighborList)// ï¿½ï¿½ï¿½ï¿½ï¿½Ğµï¿½ï¿½Ú¾ï¿½ï¿½Ğ±ï¿½ï¿½Ğ²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú¾ï¿½
 							{
-								if (ni.neighborMac.equals(parts2[0]))// Èç¹ûÕÒµ½£¬ÔòÌø³öÑ­»·
+								if (ni.neighborMac.equals(parts2[0]))// ï¿½ï¿½ï¿½ï¿½Òµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ­ï¿½ï¿½
 								{
 									found = true;
 									foundni2 = ni;
 									break;
 								}
 							}
-							if (found == false)// Èç¹ûÃ»ÓĞÕÒµ½£¬ÔòĞÂ´´½¨Ò»¸öÁÚ¾ÓĞÅÏ¢ÏîÄ¿
+							if (found == false)// ï¿½ï¿½ï¿½Ã»ï¿½ï¿½ï¿½Òµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â´ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Ú¾ï¿½ï¿½ï¿½Ï¢ï¿½ï¿½Ä¿
 							{
 								foundni2 = new NeighborInfo();
 								foundni2.neighborMac = parts2[0];
@@ -796,10 +1049,14 @@ class ConnectionThreadReceive extends Thread
 							foundni2.tx_QAM = parts2[4];
 							foundni2.rx_rate = Double.parseDouble(parts2[5]);
 							foundni2.rx_QAM = parts2[6];
-							foundni2.rate = 0.5*foundni2.tx_rate;// ´æ´¢ÁÚ¾ÓµÄĞÅÏ¢
+							foundni2.rate = 0.5*foundni2.tx_rate;// ï¿½æ´¢ï¿½Ú¾Óµï¿½ï¿½ï¿½Ï¢
 							System.out.println("foundni2 : r:"+foundni2.rate+" s:"+foundni2.signal +" n:"+foundni2.noise +" t:"+
 							foundni2.tx_rate +" tq:"+foundni2.tx_QAM +" r:"+foundni2.rx_rate +" rq:"+foundni2.rx_QAM );
-							//´òÓ¡ĞÅÏ¢
+							//ï¿½ï¿½Ó¡ï¿½ï¿½Ï¢
+							if (found == false)
+								DataOperation.appendneighbor(1,foundni.nodeID, foundri.radioNumber, foundni2);
+							else 
+								DataOperation.setneighbor(foundni.nodeID, foundri.radioNumber, foundni2.neighborMac,foundni2);
 						}
 					}
 				}
@@ -816,11 +1073,11 @@ class ConnectionThreadReceive extends Thread
 
 			}
 		}
-		synchronized (Connections.receiveListLock)// ¶Ô½ÓÊÕÁÚ¾ÓĞÅÏ¢Á¬½ÓÁĞ±í¼ÓËø
+		synchronized (Connections.receiveListLock)// ï¿½Ô½ï¿½ï¿½ï¿½ï¿½Ú¾ï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½Ğ±ï¿½ï¿½ï¿½ï¿½
 		{
-			for (int i = 0; i < Connections.receiveList.size(); i++)// ±éÀúÁĞ±í
+			for (i = 0; i < Connections.receiveList.size(); i++)// ï¿½ï¿½ï¿½ï¿½ï¿½Ğ±ï¿½
 			{
-				if (Connections.receiveList.get(i) == this)// µ±Á¬½Ó¹Ø±ÕÊ±£¬½«µ±Ç°µÄÁ¬½Ó´ÓÁĞ±íÖĞ³ıÈ¥
+				if (Connections.receiveList.get(i) == this)// ï¿½ï¿½ï¿½ï¿½ï¿½Ó¹Ø±ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½Ó´ï¿½ï¿½Ğ±ï¿½ï¿½Ğ³ï¿½È¥
 				{
 					Connections.receiveList.remove(i);
 					i--;
@@ -834,44 +1091,44 @@ class ConnectionThreadReceive extends Thread
 
 
 
-class ServerThreadSendCommand extends Thread // ´ËÏß³Ì¼àÌıÓÃÓÚÏÂ·¢½ÚµãÅäÖÃµÄ¶Ë¿Ú£¬²¢½ÓÊÜĞÂÁ¬½Ó
+class ServerThreadSendCommand extends Thread // ï¿½ï¿½ï¿½ß³Ì¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â·ï¿½ï¿½Úµï¿½ï¿½ï¿½ï¿½ÃµÄ¶Ë¿Ú£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 {
 	@Override
 	public void run()
 	{
 		try
 		{
-			ServerSocket serverSocket = new ServerSocket(10002, 10);// ¼àÌı10002¶Ë¿Ú
+			ServerSocket serverSocket = new ServerSocket(10002, 10);// ï¿½ï¿½ï¿½ï¿½10002ï¿½Ë¿ï¿½
 			System.out.println("start connect");
-			while (true)// Ò»Ö±Ñ­»·
+			while (true)// Ò»Ö±Ñ­ï¿½ï¿½
 			{
-				Socket socket = serverSocket.accept();// ½ÓÊÜÁ¬½Ó
+				Socket socket = serverSocket.accept();// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 				System.out.println("accept");
 				ConnectionThreadSendCommand ctsc = new ConnectionThreadSendCommand(socket);
-				synchronized (Connections.sendCommandListLock)// ¶Ô·¢ËÍÃüÁîÁ¬½ÓÁĞ±í¼ÓËø
+				synchronized (Connections.sendCommandListLock)// ï¿½Ô·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ğ±ï¿½ï¿½ï¿½ï¿½
 				{
 					System.out.println("synchronized");
-					Connections.sendCommandList.add(ctsc);// ½«µ±Ç°Á¬½Ó¼ÓÈëµ½ÁĞ±íÖĞ
+					Connections.sendCommandList.add(ctsc);// ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½Ó¼ï¿½ï¿½ëµ½ï¿½Ğ±ï¿½ï¿½ï¿½
 				}
-				ctsc.start();// Æô¶¯Ïß³Ì
+				ctsc.start();// ï¿½ï¿½ï¿½ï¿½ï¿½ß³ï¿½
 			}
 		}
 		catch (Exception e)
 		{
 			e.printStackTrace();
-			System.out.println("ÔÚ·¢ËÍÃüÁî·şÎñÆ÷Ïß³ÌÖĞ·¢ÉúÒì³£");
+			System.out.println("ï¿½Ú·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß³ï¿½ï¿½Ğ·ï¿½ï¿½ï¿½ï¿½ì³£");
 		}
 	}
 }
 
-class ConnectionThreadSendCommand extends Thread// ÓÃÓÚ·¢ËÍÃüÁîµÄÁ¬½ÓÏß³Ì
+class ConnectionThreadSendCommand extends Thread// ï¿½ï¿½ï¿½Ú·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß³ï¿½
 {
-	private Socket connection; // Óë¿Í»§¶Ë½¨Á¢µÄÁ¬½Ó
-	public String nodeID;// ½ÚµãµÄID
-	private ArrayList<String> commandToSend;// Òª·¢ËÍµÄÃüÁî
-	private Object queueLock;// ·¢ËÍÃüÁî¶ÓÁĞµÄËø
+	private Socket connection; // ï¿½ï¿½Í»ï¿½ï¿½Ë½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	public String nodeID;// ï¿½Úµï¿½ï¿½ID
+	private ArrayList<String> commandToSend;// Òªï¿½ï¿½ï¿½Íµï¿½ï¿½ï¿½ï¿½ï¿½
+	private Object queueLock;// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ğµï¿½ï¿½ï¿½
 
-	public ConnectionThreadSendCommand(Socket socket) // ¹¹Ôì·½·¨½ÓÊÜÒ»¸öÓë¿Í»§¶ËµÄÁ¬½Ó×÷Îª²ÎÊı
+	public ConnectionThreadSendCommand(Socket socket) // ï¿½ï¿½ï¿½ì·½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Í»ï¿½ï¿½Ëµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îªï¿½ï¿½ï¿½ï¿½
 	{
 		connection = socket;
 		commandToSend = new ArrayList<String>();
@@ -880,7 +1137,7 @@ class ConnectionThreadSendCommand extends Thread// ÓÃÓÚ·¢ËÍÃüÁîµÄÁ¬½ÓÏß³Ì
 
 	
 	@Override
-	public void run() // Ïß³ÌÔËĞĞÊ±£¬Ö´ĞĞ´Ëº¯Êı
+	public void run() // ï¿½ß³ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½Ö´ï¿½Ğ´Ëºï¿½ï¿½ï¿½
 	{
 		System.out.println("ConnectionThreadSendCommand ");
 		InputStream is = null;
@@ -889,29 +1146,29 @@ class ConnectionThreadSendCommand extends Thread// ÓÃÓÚ·¢ËÍÃüÁîµÄÁ¬½ÓÏß³Ì
 		PrintWriter printer = null;
 		try
 		{
-			is = connection.getInputStream(); // »ñÈ¡TCPÁ¬½ÓµÄÊäÈëÁ÷
-			scanner = new Scanner(is); // ÓÃScanner°ü×°ÊäÈëÁ÷
+			is = connection.getInputStream(); // ï¿½ï¿½È¡TCPï¿½ï¿½ï¿½Óµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+			scanner = new Scanner(is); // ï¿½ï¿½Scannerï¿½ï¿½×°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
-			os = connection.getOutputStream();// »ñÈ¡TCPÁ¬½ÓµÄÊä³öÁ÷
-			printer = new PrintWriter(os);// ÓÃPrintWriter°ü×°Êä³öÁ÷
+			os = connection.getOutputStream();// ï¿½ï¿½È¡TCPï¿½ï¿½ï¿½Óµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+			printer = new PrintWriter(os);// ï¿½ï¿½PrintWriterï¿½ï¿½×°ï¿½ï¿½ï¿½ï¿½ï¿½
 
-			String line = scanner.nextLine();// ¶ÁÈ¡Ò»ĞĞ
+			String line = scanner.nextLine();// ï¿½ï¿½È¡Ò»ï¿½ï¿½
 			System.out.println(line);
-			line.replace("\r", ""); // È¥³ıĞĞÎ²µÄ»»ĞĞ·û
+			line.replace("\r", ""); // È¥ï¿½ï¿½ï¿½ï¿½Î²ï¿½Ä»ï¿½ï¿½Ğ·ï¿½
 			line.replace("\n", "");
 
 			nodeID = line;
 
-			while (true) // Ò»Ö±Ñ­»·
+			while (true) // Ò»Ö±Ñ­ï¿½ï¿½
 			{
-				synchronized (queueLock)// ¶ÔÃüÁî¶ÓÁĞ¼ÓËø
+				synchronized (queueLock)// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ğ¼ï¿½ï¿½ï¿½
 				{
-					while (!commandToSend.isEmpty())// ÈôÃüÁî¶ÓÁĞ·Ç¿Õ
+					while (!commandToSend.isEmpty())// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ğ·Ç¿ï¿½
 					{
-						String command = commandToSend.get(0);// È¡³ö¶ÓÁĞµÄÍ·²¿ÔªËØ
+						String command = commandToSend.get(0);// È¡ï¿½ï¿½ï¿½ï¿½ï¿½Ğµï¿½Í·ï¿½ï¿½Ôªï¿½ï¿½
 						commandToSend.remove(0);
 
-						printer.println(command + "\r\n");// ·¢ËÍ´ËÃüÁî
+						printer.println(command + "\r\n");// ï¿½ï¿½ï¿½Í´ï¿½ï¿½ï¿½ï¿½ï¿½
 						//os.flush();
 						printer.flush();
 						System.out.println("printer: "+ command);
@@ -920,11 +1177,11 @@ class ConnectionThreadSendCommand extends Thread// ÓÃÓÚ·¢ËÍÃüÁîµÄÁ¬½ÓÏß³Ì
 				Thread.sleep(100);
 			}
 		}
-		catch (Exception e)// Èô³öÏÖÒì³£
+		catch (Exception e)// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ì³£
 		{
 			try
 			{
-				scanner.close();// ÊÍ·Å×ÊÔ´
+				scanner.close();// ï¿½Í·ï¿½ï¿½ï¿½Ô´
 				printer.close();
 			}
 			catch (Exception e1)
@@ -932,11 +1189,11 @@ class ConnectionThreadSendCommand extends Thread// ÓÃÓÚ·¢ËÍÃüÁîµÄÁ¬½ÓÏß³Ì
 
 			}
 		}
-		synchronized (Connections.sendCommandListLock)// ¶Ô·¢ËÍÃüÁîÁ¬½ÓÁĞ±í¼ÓËø
+		synchronized (Connections.sendCommandListLock)// ï¿½Ô·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ğ±ï¿½ï¿½ï¿½ï¿½
 		{
-			for (int i = 0; i < Connections.sendCommandList.size(); i++)// ±éÀúÁĞ±í
+			for (int i = 0; i < Connections.sendCommandList.size(); i++)// ï¿½ï¿½ï¿½ï¿½ï¿½Ğ±ï¿½
 			{
-				if (Connections.sendCommandList.get(i) == this)// µ±Á¬½Ó¹Ø±ÕÊ±£¬½«µ±Ç°µÄÁ¬½Ó´ÓÁĞ±íÖĞ³ıÈ¥
+				if (Connections.sendCommandList.get(i) == this)// ï¿½ï¿½ï¿½ï¿½ï¿½Ó¹Ø±ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½Ó´ï¿½ï¿½Ğ±ï¿½ï¿½Ğ³ï¿½È¥
 				{
 					Connections.sendCommandList.remove(i);
 					i--;
@@ -945,24 +1202,39 @@ class ConnectionThreadSendCommand extends Thread// ÓÃÓÚ·¢ËÍÃüÁîµÄÁ¬½ÓÏß³Ì
 		}
 	}
 
-	public void sendCommand(String command)// Ê¹ÓÃµ±Ç°µÄÁ¬½Ó·¢ËÍÒ»ÌõÃüÁî
+	public void sendCommand(String command)// Ê¹ï¿½Ãµï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½Ó·ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	{
+		int i = 0;
+		int j = 0;
 		System.out.println("sendCommand, "+command);
-		
-		synchronized (queueLock)// ¶ÔÃüÁî¶ÓÁĞ¼ÓËø
+		if (command.equals("DISCOVER \r\n")){
+			Main.nodesignal = new int [Main.nodes.size()];
+			Main.radiosignal = new int [Main.nodes.size()][Main.radionum];
+			for(i = 0;i<Main.nodes.size();i++){
+				Main.nodesignal[i] = 0;
+			}
+			for(i = 0;i<Main.nodes.size();i++){
+				for(j = 0;j<Main.radionum;j++){
+					Main.radiosignal[i][j] = 0;
+				}
+			}
+		}
+		synchronized (queueLock)// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ğ¼ï¿½ï¿½ï¿½
 		{
-			commandToSend.add(command);// ½«ÃüÁî·ÅÈë·¢ËÍ¶ÓÁĞÖĞ
+			commandToSend.add(command);// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë·¢ï¿½Í¶ï¿½ï¿½ï¿½ï¿½ï¿½
 		}
 	}
 }
 
-class NodeInfo // ½ÚµãĞÅÏ¢
+class NodeInfo // ï¿½Úµï¿½ï¿½ï¿½Ï¢
 {
 	public String nodeID;
 	public ArrayList<RadioInfo> radioInfo;
+	public int rank;
+	public double expthroughput;
 }
 
-class RadioInfo // radioĞÅÏ¢
+class RadioInfo // radioï¿½ï¿½Ï¢
 {
 	public String radioNumber;
 	public int assignedChannel;
@@ -970,13 +1242,14 @@ class RadioInfo // radioĞÅÏ¢
 	public String assignedssid;
 	public ArrayList<NeighborInfo> neighborList;
 	/**modified by zhangjian start*/
-	public String mode;//radioµÄÄ£Ê½£¨ÊÇAP»¹ÊÇclient£©
+	public String mode;//radioï¿½ï¿½Ä£Ê½ï¿½ï¿½ï¿½ï¿½APï¿½ï¿½ï¿½ï¿½clientï¿½ï¿½
 	public int WDS;
+	public int disabled;
 	/**modified by zhangjian end*/
 	
 }
 
-class NeighborInfo // ÁÚ¾ÓĞÅÏ¢
+class NeighborInfo // ï¿½Ú¾ï¿½ï¿½ï¿½Ï¢
 {
 	public String neighborMac;
 	public double rate;

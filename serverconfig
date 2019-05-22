@@ -1,0 +1,12 @@
+rootMacaddr 04:F0:21:3D:B5:AD
+radionum 2
+nodenum 0
+channel1 36
+channel2 149
+orithroughput 500.0
+Minthroughput 100.0
+throughput66 500.0
+throughput75 300.0
+attenuation 0.15
+minSNR -66.0
+bottomSNR -80.0
