@@ -7,10 +7,9 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.sql.Date;
 import java.util.ArrayList;
 import java.util.Scanner;
-
-import javax.xml.crypto.NodeSetData;
 
 public class Main// ����
 {
@@ -37,12 +36,16 @@ public class Main// ����
 	public static double  bottomSNR= -80.0;
 	public static int [] nodesignal;
 	public static int [][] radiosignal;
+	public static long starttime = 0;
+	public static long endtime = 0;
+	
 	
 	public static void main(String[] args)// �������ڵ�
 	{
 		int i = 0;
 		int j = 0;
 		
+		System.out.println(System.currentTimeMillis());
 		nodesignal = new int [nodenum];
 		radiosignal = new int [nodenum][Main.radionum];
 		for(i = 0;i<nodenum;i++){
@@ -214,7 +217,7 @@ public class Main// ����
 		//SendToNode("04:F0:21:39:64:06", "SETLINK 04:F0:21:39:64:06#6#link204 04:F0:21:39:64:05#DISABLED");
 		
 		BFSofMRMC();
-		
+		Main.starttime = System.currentTimeMillis();
 		//SendToNode("04:F0:21:39:C1:91", "SETLINK 04:F0:21:39:C1:91##36#Link201#ap#1 04:F0:21:36:21:09#DISABLED");
 		//SendToNode("04:F0:21:39:C1:5B", "SETLINK 04:F0:21:39:C1:5B##36#Link201#sta#1 04:F0:21:39:C1:92#DISABLED");
 		//SendToNode("04:F0:21:39:C1:5F", "SETLINK 04:F0:21:39:C1:5F#36#link203#ap#0 04:F0:21:39:C1:60#149#link204#ap#1");
@@ -1208,6 +1211,7 @@ class ConnectionThreadSendCommand extends Thread// ���ڷ������
 		int j = 0;
 		System.out.println("sendCommand, "+command);
 		if (command.equals("DISCOVER \r\n")){
+			Main.endtime = System.currentTimeMillis();
 			Main.nodesignal = new int [Main.nodes.size()];
 			Main.radiosignal = new int [Main.nodes.size()][Main.radionum];
 			for(i = 0;i<Main.nodes.size();i++){
