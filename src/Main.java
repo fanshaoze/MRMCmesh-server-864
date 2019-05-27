@@ -22,6 +22,8 @@ public class Main// ����
 	private static MainWindow mainWindow;
 	private static DataOperation dataOperation;
 	public static double[][][][] NeiInforArrary;
+	public static double[][][][] resultgraph_r;
+	public static double[][] resultgraph_n;
 	public static String rootMacaddr;
 	public static int radionum = 2;//改成可配置的
 	public static int nodenum = 0;//改成可配置的
@@ -34,10 +36,12 @@ public class Main// ����
 	public static double attenuation = 0.15;
 	public static double minSNR = -66.0;
 	public static double  bottomSNR= -80.0;
+	public static int  enableLB= 0;
 	public static int [] nodesignal;
 	public static int [][] radiosignal;
 	public static long starttime = 0;
 	public static long endtime = 0;
+	
 	
 	
 	public static void main(String[] args)// �������ڵ�
@@ -74,6 +78,7 @@ public class Main// ����
 		attenuation = 0.15;
 		minSNR = -66.0;
 		bottomSNR= -80.0;
+		enableLB = 0;
 		getconfig();
 		//չʾ���е�������Ϣ
 		System.out.println("configs:"+rootMacaddr+" "+radionum+" "+nodenum+" "+channel1+" "+channel2+" "+orithroughput
@@ -189,6 +194,9 @@ public class Main// ����
 				else if(configs.equals("bottomSNR")){
 					bottomSNR = Double.valueOf(parts[1]);
 				}
+				else if(configs.equals("enableLB")){
+					enableLB = Integer.parseInt(parts[1]);
+				}
 				else continue;
 				j++;
 				try {
@@ -281,6 +289,8 @@ public class Main// ����
 
 		
 		compose(nodeNum,radioNum);
+		ResultgraphRadioInit(nodeNum, radioNum);
+		ResultgraphNodeInit(nodeNum);
 		for(a = 0;a<nodeNum;a++){
 			for(b = 0;b<radioNum;b++){
 				for(d = 0;d<nodeNum;d++){
@@ -426,6 +436,8 @@ public class Main// ����
 								flag = 1;//��ʾ�ýڵ��п������ӵ��ӽڵ�
 								nodes.get(j).radioInfo.get(k).assignedssid = ssid;
 								nodes.get(j).radioInfo.get(k).direction = "up";
+								resultgraph_r[elem][j][i][k] = 1;
+								resultgraph_r[j][elem][k][i] = 1;
 								resultTemp[j][k] = 1;								
 								visited[j][k] = 1;
 								que[back] = j;
@@ -507,6 +519,8 @@ public class Main// ����
 					nodes.get(a).radioInfo.get(tmpb).assignedssid = nodes.get(tmpj).radioInfo.get(tmpk).assignedssid;
 					nodes.get(a).expthroughput = maxthroughput;
 					nodes.get(a).rank = nodes.get(tmpj).rank + 1;
+					resultgraph_r[tmpj][a][tmpk][tmpb] = 1;
+					resultgraph_r[a][tmpj][tmpb][tmpk] = 1;
 					resultTemp[a][tmpb] = 1;
 					visited[a][tmpb] = 1;
 				}
@@ -514,6 +528,8 @@ public class Main// ����
 					nodes.get(tmpj).radioInfo.get(tmpk).direction = "down";
 					String[] submac = nodes.get(tmpj).radioInfo.get(tmpk).radioNumber.split(":");
 					nodes.get(tmpj).radioInfo.get(tmpk).assignedssid = "Link" + submac[submac.length-1];
+					resultgraph_r[tmpj][a][tmpk][tmpb] = 1;
+					resultgraph_r[a][tmpj][tmpb][tmpk] = 1;
 					resultTemp[tmpj][tmpk] = 1;
 					visited[tmpj][tmpk] = 1;
 					
@@ -548,16 +564,17 @@ public class Main// ����
 					mainWindow.showInfo("good network");
 				}
 			}
-			
 		}
 		//��������û�������Ľڵ㣬
+		if(enableLB == 1){
+			loadbalance(nodeNum,radioNum);
+		}
 		results = getresult(nodeNum,radioNum,resultTemp,results);
 		System.out.println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
 		for(a = 0;a<nodeNum;a++){
 			System.out.println("rank "+ Main.nodes.get(a).rank);
 			System.out.println("throughput "+ Main.nodes.get(a).expthroughput);
-			System.out.println(results[a]);
-			
+			System.out.println(results[a]);	
 		}
 		for(a = 0;a<nodeNum;a++){
 			SendToNode(nodes.get(a).nodeID, results[a]);
@@ -566,6 +583,49 @@ public class Main// ����
 	}
 		//����γ��ַ�����ssid��channel
 		//String 
+	public static void loadbalance(int nodeNum,int radioNum){
+		int i,j = 0;
+		int rootid = 0;
+		int back = 0;
+		int front = 0;
+		int elem = 0;
+		int que[] = new int[1000];
+		int quetmp[] = new int[1000];
+		for(i = 0;i<1000;i++){
+			que[i] = -1;
+		}
+		for(i = 0;i<1000;i++){
+			quetmp[i] = -1;
+		}
+		
+		for(NodeInfo ni: Main.nodes){
+			if(ni.nodeID.equalsIgnoreCase(rootMacaddr)){
+				break;
+			}
+			rootid++;
+		}
+		i = 0;
+		j = 0;
+		Main.nodes.get(rootid).rank = 0;
+		Main.nodes.get(rootid).expthroughput = 1000;
+		quetmp[front] = rootid;
+		
+		back += 1;
+		//���У�Ԫ����nodeID��ÿ���ҵ���Ƶ�� t%node-number�������neighbor�µ�
+		while(front != back){
+			elem = quetmp[front]; 
+			front+=1;
+			for (i = 0;i<nodeNum;i++){
+				if (resultgraph_n[rootid][i] != 0){
+					quetmp[back] = i;
+					back+=1;
+				}
+			}
+		}
+		for(i = 0;i<nodeNum;i++){
+		que[i] = quetmp[nodeNum-i-1];//逆序，获得叶节点向上顺序，用于调整load
+		}
+	}
 	public static String[] getresult(int nodeNum,int radioNum,double[][] resultTemp,String[] results)// ����γ�
 	{
 		RadioInfo radioTemp1;
@@ -686,7 +746,33 @@ public class Main// ����
 			}
 		}
 	}
-	
+	public static void ResultgraphRadioInit(int nodenumber,int radionumber)// ����γ�
+	{
+		int a,b,d,e;
+		System.out.println("send here");
+
+		resultgraph_r = new double[nodenumber][nodenumber][radionumber][radionumber];
+		for(a = 0;a<nodenumber;a++){
+			for(b = 0;b<radionumber;b++){
+				for(d = 0;d<nodenumber;d++){
+					for(e = 0;e<radionumber;e++){
+						resultgraph_r[a][d][b][e] = 0;
+					}
+				}	
+			}
+		}
+	}
+	public static void ResultgraphNodeInit(int nodenumber)// ����γ�
+	{
+		int a,b,d,e;
+		System.out.println("send here");
+		resultgraph_n = new double[nodenumber][nodenumber];
+		for(a = 0;a<nodenumber;a++){
+				for(d = 0;d<nodenumber;d++){
+						resultgraph_n[a][d] = 0;	
+			}
+		}
+	}
 	private static void SendToNode(String nodeid, String command)// ��ĳ��ָ���Ľڵ㷢��һ������
 	{
 		ConnectionThreadSendCommand ctsc = null;
@@ -1005,15 +1091,16 @@ class ConnectionThreadReceive extends Thread
 							
 							foundri = new RadioInfo();
 							foundri.radioNumber = parts[2];
+							foundri.load = Double.valueOf(parts[3])/((Main.endtime-Main.starttime)/1000);
 							System.out.println("foundri.radioNumber : "+foundri.radioNumber);
 							foundri.direction = "none";
 							foundri.mode = "none";
 							foundri.WDS = 1;
 							foundri.disabled = 0;
-							foundri.assignedChannel = Integer.decode(parts[3]).intValue();
+							foundri.assignedChannel = 36;
 							foundri.neighborList = new ArrayList<NeighborInfo>();
 							foundni.radioInfo.add(foundri);
-							DataOperation.appendradio(1,foundni.nodeID, foundri);
+							DataOperation.appendradio(foundni.nodeID, foundri);
 							//��ӡ��Ϣ
 						}
 						foundri.disabled = 0;
@@ -1057,7 +1144,7 @@ class ConnectionThreadReceive extends Thread
 							foundni2.tx_rate +" tq:"+foundni2.tx_QAM +" r:"+foundni2.rx_rate +" rq:"+foundni2.rx_QAM );
 							//��ӡ��Ϣ
 							if (found == false)
-								DataOperation.appendneighbor(1,foundni.nodeID, foundri.radioNumber, foundni2);
+								DataOperation.appendneighbor(foundni.nodeID, foundri.radioNumber, foundni2);
 							else 
 								DataOperation.setneighbor(foundni.nodeID, foundri.radioNumber, foundni2.neighborMac,foundni2);
 						}
@@ -1236,6 +1323,7 @@ class NodeInfo // �ڵ���Ϣ
 	public ArrayList<RadioInfo> radioInfo;
 	public int rank;
 	public double expthroughput;
+	public double own_load;
 }
 
 class RadioInfo // radio��Ϣ
@@ -1249,6 +1337,7 @@ class RadioInfo // radio��Ϣ
 	public String mode;//radio��ģʽ����AP����client��
 	public int WDS;
 	public int disabled;
+	public double load;
 	/**modified by zhangjian end*/
 	
 }

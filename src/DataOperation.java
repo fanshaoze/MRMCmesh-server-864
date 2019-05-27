@@ -93,8 +93,10 @@ class DataOperation {
 		}
 		close();
 	}
-	public static void appendradio(int id,String nodeID,RadioInfo radio) {
+	public static void appendradio(String nodeID,RadioInfo radio) {
 		connect("jdbc:sqlite:topo3.db");
+		//获取ID
+		int id = 1;
 		try {
 			String temp = null;
 			temp = "null,null," + radio.radioNumber + "',null,null,'" + radio.assignedChannel+"',null,null,'"+
@@ -111,8 +113,10 @@ class DataOperation {
 		}
 		close();
 	}
-	public static void appendneighbor(int id,String nodeID,String radioNumber,NeighborInfo neighbor) {
+	public static void appendneighbor(String nodeID,String radioNumber,NeighborInfo neighbor) {
 		connect("jdbc:sqlite:topo3.db");
+		//获取ID
+		int id = 1;
 		try {
 			String temp = null;
 			temp = "null,'" +neighbor.neighborMac + "','"+neighbor.rate + "','" +neighbor.signal+ "','" +
