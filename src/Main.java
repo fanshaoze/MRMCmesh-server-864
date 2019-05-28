@@ -217,8 +217,9 @@ public class Main// ����
 
 	public static void SendConfiguration()// �·����нڵ������
 	{
+
 		
-		
+		getNodeLoad();
 		System.out.println("send here");
 		//SendToNode("04:F0:21:39:64:26", "SETLINK 04:F0:21:39:64:26#DISABLED 04:F0:21:39:64:25#36#link203");
 		//SendToNode("04:F0:21:39:64:20", "SETLINK 04:F0:21:39:64:20#6#link204 04:F0:21:39:64:1F#36#link203");
@@ -232,6 +233,28 @@ public class Main// ����
 		//SendToNode("04:F0:21:39:64:06", "SETLINK 04:F0:21:39:64:06#6#link204 04:F0:21:39:64:05#DISABLED");
 		//SendToNode("04:F0:21:39:64:26", "SETLINK 04:F0:21:39:64:26#6#link204 04:F0:21:39:64:25#DISABLED");
 		//SendToNode("04:F0:21:39:64:1C", "SETLINK 04:F0:21:39:64:1B#36#link204 04:F0:21:39:64:1F#36#link203");
+	}
+	public static void getNodeLoad(){//该函数具备树状多射频兼容性
+		int i = 0;
+		int j = 0;
+		int tmpj = 0;
+		double maxload = 0;
+		for(i = 0;i<nodenum;i++){
+			for(j = 0;j<radionum;j++){
+				if(nodes.get(i).radioInfo.get(j).load>=maxload){
+					maxload = nodes.get(i).radioInfo.get(j).load;
+					tmpj = j;
+				}
+			}
+			nodes.get(i).own_load = maxload;
+			for(j = 0;j<radionum;j++){
+				if(j != tmpj){
+					nodes.get(i).own_load -= nodes.get(i).radioInfo.get(j).load;
+				}
+			}
+			tmpj = 0;
+			maxload = 0;
+		}
 	}
 	public static void BFSofMRMC(){// MRMC�ĳ����㷨�������������
 		//���ļ��ķ�ʽ
@@ -567,7 +590,7 @@ public class Main// ����
 		}
 		//��������û�������Ľڵ㣬
 		if(enableLB == 1){
-			loadbalance(nodeNum,radioNum);
+			loadbalance(nodeNum,radioNum,visited,resultTemp);
 		}
 		results = getresult(nodeNum,radioNum,resultTemp,results);
 		System.out.println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
@@ -583,19 +606,27 @@ public class Main// ����
 	}
 		//����γ��ַ�����ssid��channel
 		//String 
-	public static void loadbalance(int nodeNum,int radioNum){
-		int i,j = 0;
+	public static void loadbalance(int nodeNum,int radioNum,int [][] visited,double [][] resultTemp){
+		int i,j,k = 0;
+		int a = 0;
+		int b = 0;
 		int rootid = 0;
 		int back = 0;
 		int front = 0;
 		int elem = 0;
 		int que[] = new int[1000];
-		int quetmp[] = new int[1000];
+		int queTmp[] = new int[1000];
+		double remainLoad = 0;
+		double overLoad = 0;
+		double duration;
+		duration = Main.endtime-Main.starttime;
+		int flag = 0;
+
 		for(i = 0;i<1000;i++){
 			que[i] = -1;
 		}
 		for(i = 0;i<1000;i++){
-			quetmp[i] = -1;
+			queTmp[i] = -1;
 		}
 		
 		for(NodeInfo ni: Main.nodes){
@@ -608,23 +639,123 @@ public class Main// ����
 		j = 0;
 		Main.nodes.get(rootid).rank = 0;
 		Main.nodes.get(rootid).expthroughput = 1000;
-		quetmp[front] = rootid;
+		queTmp[front] = rootid;
 		
 		back += 1;
 		//���У�Ԫ����nodeID��ÿ���ҵ���Ƶ�� t%node-number�������neighbor�µ�
 		while(front != back){
-			elem = quetmp[front]; 
+			elem = queTmp[front]; 
 			front+=1;
 			for (i = 0;i<nodeNum;i++){
 				if (resultgraph_n[rootid][i] != 0){
-					quetmp[back] = i;
+					queTmp[back] = i;
 					back+=1;
 				}
 			}
 		}
 		for(i = 0;i<nodeNum;i++){
-		que[i] = quetmp[nodeNum-i-1];//逆序，获得叶节点向上顺序，用于调整load
+			que[i] = queTmp[nodeNum-i-1];//逆序，获得叶节点向上顺序，用于调整load
 		}
+		for(i = 0;i<nodeNum;i++){
+			elem = que[i];
+			for(j = 0;j<radioNum;j++){
+				if(nodes.get(elem).radioInfo.get(j).direction.equals("up")){
+					nodes.get(elem).radioInfo.get(j).load = 0;
+					for(k = 0;k<radioNum;k++){
+						if(nodes.get(elem).radioInfo.get(k).direction.equals("down")){
+							nodes.get(elem).radioInfo.get(j).load+=nodes.get(elem).radioInfo.get(k).load;
+						}
+					}
+					nodes.get(elem).radioInfo.get(j).load+=nodes.get(elem).own_load;
+					for(k = 0;k<nodeNum;k++){
+						if(nodes.get(elem).radioInfo.get(j).load<nodes.get(elem).expthroughput){
+							break;
+						}
+						else if(resultgraph_n[elem][k] == 1){
+							for(b = 0;b<radioNum;b++){
+								if(Main.nodes.get(k).radioInfo.get(b).direction.equals("up")) break;
+							}
+							flag = findAvilableFather(k,b,nodeNum,radioNum,visited,resultTemp);
+							if(flag == 1){
+								nodes.get(elem).radioInfo.get(j).load -= nodes.get(k).radioInfo.get(b).load;//可能是不必要的
+								nodes.get(elem).radioInfo.get(1-j).load -= nodes.get(k).radioInfo.get(b).load;//不兼容更多射频	
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	public static int findAvilableFather(int sonNode,int sonRadio,int nodeNum,int radioNum,int [][] visited,double [][] resultTemp){
+		int a = 0;
+		int b = 0;
+		int visitednum = 0;
+		int flag = 0;
+		int i,j,k  = 0;
+		int tmpj = -1;
+		int tmpk = -1;
+		int tmpb = -1;
+		NodeInfo niTemp1;
+		RadioInfo radioTemp1;
+		a = sonNode;
+		b = sonRadio;
+		for(NeighborInfo nei : Main.nodes.get(a).radioInfo.get(b).neighborList){
+			for(j = 0;j<nodeNum;j++){
+				niTemp1 = nodes.get(j);
+				for(k = 0;k<radioNum;k++){
+					radioTemp1 = niTemp1.radioInfo.get(k);
+					System.out.println(radioTemp1.radioNumber+" "+nei.neighborMac);
+					if(radioTemp1.radioNumber.equalsIgnoreCase(nei.neighborMac)){
+						if(NeiInforArrary[a][j][b][k]> minSNR && NeiInforArrary[j][a][k][b]> minSNR){
+							System.out.println(resultTemp[j][k]+" "+resultTemp[j][1-k]+" "+radioTemp1.direction);
+							if((resultTemp[j][k] == 1 || resultTemp[j][1-k] == 1)&& 
+									(radioTemp1.direction.equalsIgnoreCase("down") || radioTemp1.direction.equalsIgnoreCase("none"))){
+								if (Main.nodes.get(a).radioInfo.get(b).load <= nodes.get(tmpj).expthroughput*(1-attenuation)){
+									tmpb = b;
+									tmpj = j;
+									tmpk = k;
+									flag = 1;
+								}	
+							}
+							else continue;
+						}
+					}
+				}
+			}
+		}
+		if(nodes.get(tmpj).radioInfo.get(tmpk).direction.equalsIgnoreCase("down")){
+			nodes.get(a).radioInfo.get(tmpb).direction = "up";
+			nodes.get(a).radioInfo.get(tmpb).assignedssid = nodes.get(tmpj).radioInfo.get(tmpk).assignedssid;
+			nodes.get(a).expthroughput = nodes.get(tmpj).expthroughput*(1-attenuation);
+			nodes.get(a).rank = nodes.get(tmpj).rank + 1;
+			resultgraph_r[tmpj][a][tmpk][tmpb] = 1;
+			resultgraph_r[a][tmpj][tmpb][tmpk] = 1;
+			resultTemp[a][tmpb] = 1;
+			visited[a][tmpb] = 1;
+			
+			nodes.get(tmpj).radioInfo.get(tmpk).load+=nodes.get(a).radioInfo.get(tmpb).load;
+			nodes.get(tmpj).radioInfo.get(1-tmpk).load+=nodes.get(a).radioInfo.get(tmpb).load;//不兼容
+		}
+		else if(nodes.get(tmpj).radioInfo.get(tmpk).direction.equalsIgnoreCase("none")){
+			nodes.get(tmpj).radioInfo.get(tmpk).direction = "down";
+			String[] submac = nodes.get(tmpj).radioInfo.get(tmpk).radioNumber.split(":");
+			nodes.get(tmpj).radioInfo.get(tmpk).assignedssid = "Link" + submac[submac.length-1];
+			resultgraph_r[tmpj][a][tmpk][tmpb] = 1;
+			resultgraph_r[a][tmpj][tmpb][tmpk] = 1;
+			resultTemp[tmpj][tmpk] = 1;
+			visited[tmpj][tmpk] = 1;
+			
+			nodes.get(a).radioInfo.get(tmpb).direction = "up";
+			nodes.get(a).expthroughput = nodes.get(tmpj).expthroughput*(1-attenuation);
+			nodes.get(a).rank = nodes.get(tmpj).rank+1;
+			nodes.get(a).radioInfo.get(tmpb).assignedssid = nodes.get(tmpj).radioInfo.get(tmpk).assignedssid;
+			resultTemp[a][tmpb] = 1;
+			visited[a][tmpb] = 1;
+			
+			nodes.get(tmpj).radioInfo.get(tmpk).load+=nodes.get(a).radioInfo.get(tmpb).load;
+			nodes.get(tmpj).radioInfo.get(1-tmpk).load+=nodes.get(a).radioInfo.get(tmpb).load;//不兼容
+		}
+		return flag;
 	}
 	public static String[] getresult(int nodeNum,int radioNum,double[][] resultTemp,String[] results)// ����γ�
 	{
@@ -1104,6 +1235,7 @@ class ConnectionThreadReceive extends Thread
 							//��ӡ��Ϣ
 						}
 						foundri.disabled = 0;
+
 						for (i = 4; i < parts.length; i++)// �����ھ���Ϣ��ʣ�ಿ��
 						{
 							String s = parts[i];
