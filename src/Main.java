@@ -24,6 +24,10 @@ public class Main// ����
 	public static double[][][][] NeiInforArrary;
 	public static double[][][][] resultgraph_r;
 	public static double[][] resultgraph_n;
+	
+	public static double [] Dxofson;
+	public static double [] diffSonProExpthr;
+	
 	public static String rootMacaddr;
 	public static int radionum = 2;//改成可配置的
 	public static int nodenum = 0;//改成可配置的
@@ -287,8 +291,10 @@ public class Main// ����
 		int radioNo = 0;
 		int nodeNum = 0;
 		int radioNum = 0;
+		int maxlevel = 0;
 		double maxthroughput = -1;
 		double tmpthroughput;
+		
 		RadioInfo radioTemp;
 		RadioInfo radioTemp1;
 		nodeNum = nodes.size();
@@ -461,6 +467,8 @@ public class Main// ����
 								nodes.get(j).radioInfo.get(k).direction = "up";
 								resultgraph_r[elem][j][i][k] = 1;
 								resultgraph_r[j][elem][k][i] = 1;
+								resultgraph_n[elem][j] = 1;
+								resultgraph_n[j][elem] = 1;
 								resultTemp[j][k] = 1;								
 								visited[j][k] = 1;
 								que[back] = j;
@@ -544,6 +552,8 @@ public class Main// ����
 					nodes.get(a).rank = nodes.get(tmpj).rank + 1;
 					resultgraph_r[tmpj][a][tmpk][tmpb] = 1;
 					resultgraph_r[a][tmpj][tmpb][tmpk] = 1;
+					resultgraph_n[tmpj][a] = 1;
+					resultgraph_n[a][tmpj] = 1;
 					resultTemp[a][tmpb] = 1;
 					visited[a][tmpb] = 1;
 				}
@@ -553,6 +563,8 @@ public class Main// ����
 					nodes.get(tmpj).radioInfo.get(tmpk).assignedssid = "Link" + submac[submac.length-1];
 					resultgraph_r[tmpj][a][tmpk][tmpb] = 1;
 					resultgraph_r[a][tmpj][tmpb][tmpk] = 1;
+					resultgraph_n[tmpj][a] = 1;
+					resultgraph_n[a][tmpj] = 1;
 					resultTemp[tmpj][tmpk] = 1;
 					visited[tmpj][tmpk] = 1;
 					
@@ -588,9 +600,19 @@ public class Main// ����
 				}
 			}
 		}
+		for(a = 0;a<nodeNum;a++){
+			if(nodes.get(a).rank>maxlevel)
+			maxlevel = nodes.get(a).rank;
+		}
+		//网络负载均衡性评估
+		DxandProInit(maxlevel);
+		balanceEstimate(nodeNum,radioNum,maxlevel);
+		//展示estimate结果
 		//��������û�������Ľڵ㣬
 		if(enableLB == 1){
 			loadbalance(nodeNum,radioNum,visited,resultTemp);
+			balanceEstimate(nodeNum,radioNum,maxlevel);
+			//展示estimate结果
 		}
 		results = getresult(nodeNum,radioNum,resultTemp,results);
 		System.out.println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
@@ -606,6 +628,54 @@ public class Main// ����
 	}
 		//����γ��ַ�����ssid��channel
 		//String 
+	public static void balanceEstimate(int nodeNum,int radioNum,int maxlevel){
+		int a = 0;
+		int b = 0;
+		int [] levelCount = new int[maxlevel];
+		int [] nodeSonCount = new int[nodeNum];
+		double [] avgThroughput = new double[maxlevel];
+		double [] avgSon = new double[maxlevel];
+		for(a = 0;a<nodeNum;a++){
+			levelCount[nodes.get(a).rank] += 1;
+		}
+		for(a = 0;a<nodeNum;a++){
+			for(b = 0;b<nodeNum;b++){
+				if(resultgraph_n[a][b] == 1)
+					nodeSonCount[a] += 1;
+			}
+			nodeSonCount[a] -= 1;
+		}
+		nodeSonCount[0] += 1;
+		
+		for(a = 0;a<nodeNum;a++){
+			avgThroughput[nodes.get(a).rank] += nodes.get(a).expthroughput;
+		}
+		for(a = 1;a<maxlevel;a++){
+			if(nodeSonCount[a] !=0 )
+				avgThroughput[a] = avgThroughput[a]/nodeSonCount[a];
+		}
+
+		for(a = 0;a<nodeNum;a++){
+			avgSon[nodes.get(a).rank] += nodeSonCount[a];
+		}
+		for(a = 1;a<maxlevel;a++){
+			if(nodeSonCount[a] !=0 )
+			avgSon[a] = avgSon[a]/nodeSonCount[a];
+		}
+		
+		for(a = 0;a<nodeNum;a++){
+			Dxofson[nodes.get(a).rank]+=(nodeSonCount[a]-avgSon[nodes.get(a).rank])*(nodeSonCount[a]-avgSon[nodes.get(a).rank]);
+		}
+		for(a = 1;a<maxlevel;a++){
+			if(nodeSonCount[a] !=0 )
+				Dxofson[a] = Dxofson[a]/nodeSonCount[a];
+		}
+		
+		for(a = 0;a<nodeNum;a++){
+			diffSonProExpthr[nodes.get(a).rank]+=(nodeSonCount[a]-avgSon[nodes.get(a).rank])*
+					(nodes.get(a).expthroughput-avgThroughput[nodes.get(a).rank]);
+		}
+	}
 	public static void loadbalance(int nodeNum,int radioNum,int [][] visited,double [][] resultTemp){
 		int i,j,k = 0;
 		int a = 0;
@@ -679,7 +749,9 @@ public class Main// ����
 							if(flag == 1){
 								nodes.get(elem).radioInfo.get(j).load -= nodes.get(k).radioInfo.get(b).load;//可能是不必要的
 								nodes.get(elem).radioInfo.get(1-j).load -= nodes.get(k).radioInfo.get(b).load;//不兼容更多射频	
+								if(nodes.get(elem).radioInfo.get(1-j).load<0) nodes.get(elem).radioInfo.get(1-j).load = 0;//防止向下溢出
 							}
+							flag = 0;
 						}
 					}
 				}
@@ -902,6 +974,16 @@ public class Main// ����
 				for(d = 0;d<nodenumber;d++){
 						resultgraph_n[a][d] = 0;	
 			}
+		}
+	}
+	public static void DxandProInit(int maxlevel)// ����γ�
+	{
+		int a;
+		System.out.println("send here");
+		resultgraph_n = new double[maxlevel][maxlevel];
+		for(a = 0;a<maxlevel;a++){
+			Dxofson[a] = -1;
+			diffSonProExpthr[a] = -1;
 		}
 	}
 	private static void SendToNode(String nodeid, String command)// ��ĳ��ָ���Ľڵ㷢��һ������
