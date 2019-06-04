@@ -53,18 +53,8 @@ public class Main// ����
 		int i = 0;
 		int j = 0;
 		
-		System.out.println(System.currentTimeMillis());
-		nodesignal = new int [nodenum];
-		radiosignal = new int [nodenum][Main.radionum];
-		for(i = 0;i<nodenum;i++){
-			nodesignal[i] = 0;
-		}
-		for(i = 0;i<nodenum;i++){
-			for(j = 0;j<Main.radionum;j++){
-				radiosignal[i][j] = 0;
-			}
-		}
-		DataOperation.connect("jdbc:sqlite:MRMCmeshData.db");
+
+		//DataOperation.connect("jdbc:sqlite:MRMCmeshData.db");
 		Connections.receiveList = new ArrayList<ConnectionThreadReceive>();// ��ʼ�������б�
 		Connections.receiveListLock = new Object();
 		Connections.sendCommandList = new ArrayList<ConnectionThreadSendCommand>();
@@ -88,6 +78,17 @@ public class Main// ����
 		System.out.println("configs:"+rootMacaddr+" "+radionum+" "+nodenum+" "+channel1+" "+channel2+" "+orithroughput
 				+" "+Minthroughput+" "+throughput66+" "+throughput75+" "+attenuation+
 				" "+minSNR+" "+bottomSNR);
+		System.out.println(System.currentTimeMillis());
+		nodesignal = new int [nodenum];
+		radiosignal = new int [nodenum][Main.radionum];
+		for(i = 0;i<nodenum;i++){
+			nodesignal[i] = 0;
+		}
+		for(i = 0;i<nodenum;i++){
+			for(j = 0;j<Main.radionum;j++){
+				radiosignal[i][j] = 0;
+			}
+		}
 		nodes = new ArrayList<NodeInfo>();// ��ʼ���ڵ���Ϣ�б�
 		nodesLock = new Object();// ��ʼ���б����
 		//BFSofMRMC();
@@ -107,12 +108,13 @@ public class Main// ����
 			System.out.println(command);
 			if (command.equals("send"))
 			{
-				dropinform();
+				//dropinform();
 				System.out.println("Sending configurations to routers.");
 				SendConfiguration();
 			}
 		}
 	}
+	/*
 	public static void dropinform(){
 		int i,j = 0;
 		for(i = 0;i<Main.nodes.size();i++){
@@ -137,6 +139,7 @@ public class Main// ����
 			}
 		}
 	}
+	*/
 	public static void getconfig()  // �߳�����ʱ��ִ�д˺���
 	{
 
@@ -222,15 +225,21 @@ public class Main// ����
 	public static void SendConfiguration()// �·����нڵ������
 	{
 
+		//SendToNode("04:F0:21:39:C1:5F", "SETLINK 04:F0:21:39:C1:5F#36#link203#ap#0 04:F0:21:39:C1:60#149#link204#ap#0");
 		
-		getNodeLoad();
-		System.out.println("send here");
+		////getNodeLoad();
+		////System.out.println("send here");
+		
+		
 		//SendToNode("04:F0:21:39:64:26", "SETLINK 04:F0:21:39:64:26#DISABLED 04:F0:21:39:64:25#36#link203");
 		//SendToNode("04:F0:21:39:64:20", "SETLINK 04:F0:21:39:64:20#6#link204 04:F0:21:39:64:1F#36#link203");
 		//SendToNode("04:F0:21:39:64:06", "SETLINK 04:F0:21:39:64:06#6#link204 04:F0:21:39:64:05#DISABLED");
 		
+		
 		BFSofMRMC();
-		Main.starttime = System.currentTimeMillis();
+		////Main.starttime = System.currentTimeMillis();
+		
+		
 		//SendToNode("04:F0:21:39:C1:91", "SETLINK 04:F0:21:39:C1:91##36#Link201#ap#1 04:F0:21:36:21:09#DISABLED");
 		//SendToNode("04:F0:21:39:C1:5B", "SETLINK 04:F0:21:39:C1:5B##36#Link201#sta#1 04:F0:21:39:C1:92#DISABLED");
 		//SendToNode("04:F0:21:39:C1:5F", "SETLINK 04:F0:21:39:C1:5F#36#link203#ap#0 04:F0:21:39:C1:60#149#link204#ap#1");
@@ -262,7 +271,7 @@ public class Main// ����
 	}
 	public static void BFSofMRMC(){// MRMC�ĳ����㷨�������������
 		//���ļ��ķ�ʽ
-		//BFStestinit("");
+		BFStestinit("");
 		//������־
 		int i,j,k,q= 0;
 		int tmpj = -1,tmpk = -1;//���ڻ���Ԥ��ѡ���ھӽڵ�
@@ -604,6 +613,11 @@ public class Main// ����
 			if(nodes.get(a).rank>maxlevel)
 			maxlevel = nodes.get(a).rank;
 		}
+		maxlevel += 1;
+		System.out.println("maxlevel:"+maxlevel);
+		
+		printresultgraph(nodeNum);
+		
 		//网络负载均衡性评估
 		DxandProInit(maxlevel);
 		balanceEstimate(nodeNum,radioNum,maxlevel);
@@ -611,9 +625,10 @@ public class Main// ����
 		//��������û�������Ľڵ㣬
 		if(enableLB == 1){
 			loadbalance(nodeNum,radioNum,visited,resultTemp);
-			balanceEstimate(nodeNum,radioNum,maxlevel);
-			//展示estimate结果
+			DxandProInit(maxlevel);
+			balanceEstimate(nodeNum,radioNum,maxlevel);//展示estimate结果
 		}
+		printresultgraph(nodeNum);
 		results = getresult(nodeNum,radioNum,resultTemp,results);
 		System.out.println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
 		for(a = 0;a<nodeNum;a++){
@@ -635,7 +650,11 @@ public class Main// ����
 		int [] nodeSonCount = new int[nodeNum];
 		double [] avgThroughput = new double[maxlevel];
 		double [] avgSon = new double[maxlevel];
+		for(a = 0;a<maxlevel;a++){
+			levelCount[a] = 0;
+		}
 		for(a = 0;a<nodeNum;a++){
+			System.out.println("rank "+nodes.get(a).rank);
 			levelCount[nodes.get(a).rank] += 1;
 		}
 		for(a = 0;a<nodeNum;a++){
@@ -646,34 +665,52 @@ public class Main// ����
 			nodeSonCount[a] -= 1;
 		}
 		nodeSonCount[0] += 1;
-		
+		for(a = 0;a<nodeNum;a++){
+			System.out.println(a+" nodeSonCount "+nodeSonCount[a]);
+		}
 		for(a = 0;a<nodeNum;a++){
 			avgThroughput[nodes.get(a).rank] += nodes.get(a).expthroughput;
 		}
 		for(a = 1;a<maxlevel;a++){
-			if(nodeSonCount[a] !=0 )
-				avgThroughput[a] = avgThroughput[a]/nodeSonCount[a];
+			if(levelCount[a] !=0 )
+				avgThroughput[a] = avgThroughput[a]/levelCount[a];
+			else
+				avgThroughput[a] = 0;
 		}
 
 		for(a = 0;a<nodeNum;a++){
 			avgSon[nodes.get(a).rank] += nodeSonCount[a];
 		}
 		for(a = 1;a<maxlevel;a++){
-			if(nodeSonCount[a] !=0 )
-			avgSon[a] = avgSon[a]/nodeSonCount[a];
+			if(levelCount[a] !=0 )
+				avgSon[a] = avgSon[a]/levelCount[a];
+			else
+				avgSon[a] = 0;
+		}
+		for(a = 1;a<maxlevel;a++){	
+			System.out.println(a+" avgSon[a] "+avgSon[a]);
 		}
 		
 		for(a = 0;a<nodeNum;a++){
+			System.out.println(a+"*****"+nodeSonCount[a]+" "+avgSon[nodes.get(a).rank]);
 			Dxofson[nodes.get(a).rank]+=(nodeSonCount[a]-avgSon[nodes.get(a).rank])*(nodeSonCount[a]-avgSon[nodes.get(a).rank]);
 		}
+		for(a = 1;a<maxlevel;a++){	
+			System.out.println(a+" Dxofson "+Dxofson[a]);
+		}
 		for(a = 1;a<maxlevel;a++){
-			if(nodeSonCount[a] !=0 )
-				Dxofson[a] = Dxofson[a]/nodeSonCount[a];
+			if(levelCount[a] !=0 )
+				Dxofson[a] = Dxofson[a]/levelCount[a];
+			else
+				Dxofson[a] = 0;
 		}
 		
 		for(a = 0;a<nodeNum;a++){
 			diffSonProExpthr[nodes.get(a).rank]+=(nodeSonCount[a]-avgSon[nodes.get(a).rank])*
 					(nodes.get(a).expthroughput-avgThroughput[nodes.get(a).rank]);
+		}
+		for(a = 1;a<maxlevel;a++){
+			System.out.println(a + "\t"+"Dxofson\t"+ Dxofson[a]+"\t"+"diff\t"+ diffSonProExpthr[a]);
 		}
 	}
 	public static void loadbalance(int nodeNum,int radioNum,int [][] visited,double [][] resultTemp){
@@ -691,7 +728,8 @@ public class Main// ����
 		double duration;
 		duration = Main.endtime-Main.starttime;
 		int flag = 0;
-
+		int flagnoson = 0;
+		
 		for(i = 0;i<1000;i++){
 			que[i] = -1;
 		}
@@ -713,13 +751,22 @@ public class Main// ����
 		
 		back += 1;
 		//���У�Ԫ����nodeID��ÿ���ҵ���Ƶ�� t%node-number�������neighbor�µ�
+		int [] banvisited = new int [nodeNum];
+		for(i = 0;i<nodeNum;i++){
+			banvisited[i] = 0;
+		}
 		while(front != back){
 			elem = queTmp[front]; 
-			front+=1;
+			banvisited[elem] = 1;
+			System.out.println("elem " + elem);
+			front += 1;
 			for (i = 0;i<nodeNum;i++){
-				if (resultgraph_n[rootid][i] != 0){
-					queTmp[back] = i;
-					back+=1;
+				if (resultgraph_n[elem][i] != 0){
+					if(banvisited[i] != 1){
+						System.out.println("i " + i);
+						queTmp[back] = i;
+						back+=1;
+					}
 				}
 			}
 		}
@@ -728,6 +775,7 @@ public class Main// ����
 		}
 		for(i = 0;i<nodeNum;i++){
 			elem = que[i];
+			System.out.println("bl elem "+elem);
 			for(j = 0;j<radioNum;j++){
 				if(nodes.get(elem).radioInfo.get(j).direction.equals("up")){
 					nodes.get(elem).radioInfo.get(j).load = 0;
@@ -736,21 +784,42 @@ public class Main// ����
 							nodes.get(elem).radioInfo.get(j).load+=nodes.get(elem).radioInfo.get(k).load;
 						}
 					}
-					nodes.get(elem).radioInfo.get(j).load+=nodes.get(elem).own_load;
+					nodes.get(elem).radioInfo.get(j).load += nodes.get(elem).own_load;
 					for(k = 0;k<nodeNum;k++){
 						if(nodes.get(elem).radioInfo.get(j).load<nodes.get(elem).expthroughput){
 							break;
 						}
-						else if(resultgraph_n[elem][k] == 1){
+						if (Main.nodes.get(k).rank < Main.nodes.get(elem).rank) continue;
+						if(resultgraph_n[elem][k] == 1){
 							for(b = 0;b<radioNum;b++){
 								if(Main.nodes.get(k).radioInfo.get(b).direction.equals("up")) break;
 							}
-							flag = findAvilableFather(k,b,nodeNum,radioNum,visited,resultTemp);
+							if (b == radioNum) continue;
+							flag = findAvilableFather(elem,k,b,nodeNum,radioNum,visited,resultTemp);
 							if(flag == 1){
+								resultgraph_r[elem][k][j][b] = 0;
+								resultgraph_r[k][elem][b][j] = 0;
+								resultgraph_n[elem][k] = 0;
+								resultgraph_n[k][elem] = 0;
+								
 								nodes.get(elem).radioInfo.get(j).load -= nodes.get(k).radioInfo.get(b).load;//可能是不必要的
 								nodes.get(elem).radioInfo.get(1-j).load -= nodes.get(k).radioInfo.get(b).load;//不兼容更多射频	
 								if(nodes.get(elem).radioInfo.get(1-j).load<0) nodes.get(elem).radioInfo.get(1-j).load = 0;//防止向下溢出
+								for(a = 0;a<nodeNum;a++){
+									if(resultgraph_n[elem][a] == 1){
+										flagnoson = 1;
+										break;
+									}
+								}
+								if(flagnoson != 1){
+									nodes.get(elem).radioInfo.get(j).direction = "none";
+									nodes.get(elem).radioInfo.get(j).assignedssid = "Link";
+									resultTemp[elem][j] = 0;
+									visited[elem][j] = 0;
+								}
+								
 							}
+							flagnoson = 0;
 							flag = 0;
 						}
 					}
@@ -758,11 +827,12 @@ public class Main// ����
 			}
 		}
 	}
-	public static int findAvilableFather(int sonNode,int sonRadio,int nodeNum,int radioNum,int [][] visited,double [][] resultTemp){
+	public static int findAvilableFather(int fatherNode,int sonNode,int sonRadio,int nodeNum,int radioNum,int [][] visited,double [][] resultTemp){
 		int a = 0;
 		int b = 0;
 		int visitednum = 0;
 		int flag = 0;
+		int flag1 = 0;
 		int i,j,k  = 0;
 		int tmpj = -1;
 		int tmpk = -1;
@@ -771,8 +841,10 @@ public class Main// ����
 		RadioInfo radioTemp1;
 		a = sonNode;
 		b = sonRadio;
+		System.out.println(a+" "+b);
 		for(NeighborInfo nei : Main.nodes.get(a).radioInfo.get(b).neighborList){
 			for(j = 0;j<nodeNum;j++){
+				if(j == fatherNode) continue;
 				niTemp1 = nodes.get(j);
 				for(k = 0;k<radioNum;k++){
 					radioTemp1 = niTemp1.radioInfo.get(k);
@@ -782,11 +854,13 @@ public class Main// ����
 							System.out.println(resultTemp[j][k]+" "+resultTemp[j][1-k]+" "+radioTemp1.direction);
 							if((resultTemp[j][k] == 1 || resultTemp[j][1-k] == 1)&& 
 									(radioTemp1.direction.equalsIgnoreCase("down") || radioTemp1.direction.equalsIgnoreCase("none"))){
-								if (Main.nodes.get(a).radioInfo.get(b).load <= nodes.get(tmpj).expthroughput*(1-attenuation)){
+								if (Main.nodes.get(a).radioInfo.get(b).load <= nodes.get(j).expthroughput*(1-attenuation)){
 									tmpb = b;
 									tmpj = j;
 									tmpk = k;
 									flag = 1;
+									flag1 = 1;
+									
 								}	
 							}
 							else continue;
@@ -795,37 +869,43 @@ public class Main// ����
 				}
 			}
 		}
-		if(nodes.get(tmpj).radioInfo.get(tmpk).direction.equalsIgnoreCase("down")){
-			nodes.get(a).radioInfo.get(tmpb).direction = "up";
-			nodes.get(a).radioInfo.get(tmpb).assignedssid = nodes.get(tmpj).radioInfo.get(tmpk).assignedssid;
-			nodes.get(a).expthroughput = nodes.get(tmpj).expthroughput*(1-attenuation);
-			nodes.get(a).rank = nodes.get(tmpj).rank + 1;
-			resultgraph_r[tmpj][a][tmpk][tmpb] = 1;
-			resultgraph_r[a][tmpj][tmpb][tmpk] = 1;
-			resultTemp[a][tmpb] = 1;
-			visited[a][tmpb] = 1;
-			
-			nodes.get(tmpj).radioInfo.get(tmpk).load+=nodes.get(a).radioInfo.get(tmpb).load;
-			nodes.get(tmpj).radioInfo.get(1-tmpk).load+=nodes.get(a).radioInfo.get(tmpb).load;//不兼容
-		}
-		else if(nodes.get(tmpj).radioInfo.get(tmpk).direction.equalsIgnoreCase("none")){
-			nodes.get(tmpj).radioInfo.get(tmpk).direction = "down";
-			String[] submac = nodes.get(tmpj).radioInfo.get(tmpk).radioNumber.split(":");
-			nodes.get(tmpj).radioInfo.get(tmpk).assignedssid = "Link" + submac[submac.length-1];
-			resultgraph_r[tmpj][a][tmpk][tmpb] = 1;
-			resultgraph_r[a][tmpj][tmpb][tmpk] = 1;
-			resultTemp[tmpj][tmpk] = 1;
-			visited[tmpj][tmpk] = 1;
-			
-			nodes.get(a).radioInfo.get(tmpb).direction = "up";
-			nodes.get(a).expthroughput = nodes.get(tmpj).expthroughput*(1-attenuation);
-			nodes.get(a).rank = nodes.get(tmpj).rank+1;
-			nodes.get(a).radioInfo.get(tmpb).assignedssid = nodes.get(tmpj).radioInfo.get(tmpk).assignedssid;
-			resultTemp[a][tmpb] = 1;
-			visited[a][tmpb] = 1;
-			
-			nodes.get(tmpj).radioInfo.get(tmpk).load+=nodes.get(a).radioInfo.get(tmpb).load;
-			nodes.get(tmpj).radioInfo.get(1-tmpk).load+=nodes.get(a).radioInfo.get(tmpb).load;//不兼容
+		if (flag1 == 1){
+			if(nodes.get(tmpj).radioInfo.get(tmpk).direction.equalsIgnoreCase("down")){
+				nodes.get(a).radioInfo.get(tmpb).direction = "up";
+				nodes.get(a).radioInfo.get(tmpb).assignedssid = nodes.get(tmpj).radioInfo.get(tmpk).assignedssid;
+				nodes.get(a).expthroughput = nodes.get(tmpj).expthroughput*(1-attenuation);
+				nodes.get(a).rank = nodes.get(tmpj).rank + 1;
+				resultgraph_r[tmpj][a][tmpk][tmpb] = 1;
+				resultgraph_r[a][tmpj][tmpb][tmpk] = 1;
+				resultgraph_n[tmpj][a] = 1;
+				resultgraph_n[a][tmpj] = 1;
+				resultTemp[a][tmpb] = 1;
+				visited[a][tmpb] = 1;
+				
+				nodes.get(tmpj).radioInfo.get(tmpk).load+=nodes.get(a).radioInfo.get(tmpb).load;
+				nodes.get(tmpj).radioInfo.get(1-tmpk).load+=nodes.get(a).radioInfo.get(tmpb).load;//不兼容
+			}
+			else if(nodes.get(tmpj).radioInfo.get(tmpk).direction.equalsIgnoreCase("none")){
+				nodes.get(tmpj).radioInfo.get(tmpk).direction = "down";
+				String[] submac = nodes.get(tmpj).radioInfo.get(tmpk).radioNumber.split(":");
+				nodes.get(tmpj).radioInfo.get(tmpk).assignedssid = "Link" + submac[submac.length-1];
+				resultgraph_r[tmpj][a][tmpk][tmpb] = 1;
+				resultgraph_r[a][tmpj][tmpb][tmpk] = 1;
+				resultgraph_n[tmpj][a] = 1;
+				resultgraph_n[a][tmpj] = 1;
+				resultTemp[tmpj][tmpk] = 1;
+				visited[tmpj][tmpk] = 1;
+				
+				nodes.get(a).radioInfo.get(tmpb).direction = "up";
+				nodes.get(a).expthroughput = nodes.get(tmpj).expthroughput*(1-attenuation);
+				nodes.get(a).rank = nodes.get(tmpj).rank+1;
+				nodes.get(a).radioInfo.get(tmpb).assignedssid = nodes.get(tmpj).radioInfo.get(tmpk).assignedssid;
+				resultTemp[a][tmpb] = 1;
+				visited[a][tmpb] = 1;
+				
+				nodes.get(tmpj).radioInfo.get(tmpk).load+=nodes.get(a).radioInfo.get(tmpb).load;
+				nodes.get(tmpj).radioInfo.get(1-tmpk).load+=nodes.get(a).radioInfo.get(tmpb).load;//不兼容
+			}
 		}
 		return flag;
 	}
@@ -869,7 +949,7 @@ public class Main// ����
 					radioTemp1.WDS = 1;
 					nodes.get(a).radioInfo.get(b).WDS = 1;
 					radioTemp1.disabled = 0;
-					DataOperation.setradio(nodes.get(a).nodeID, radioTemp1);
+					//DataOperation.setradio(nodes.get(a).nodeID, radioTemp1);
 					//radioTemp1.WDS=1;
 					results[a] += radioTemp1.assignedChannel+"#"+radioTemp1.assignedssid+"#"+radioTemp1.mode + "#" + radioTemp1.WDS + " ";
 					System.out.println(results[a]);
@@ -965,6 +1045,8 @@ public class Main// ����
 			}
 		}
 	}
+	
+	
 	public static void ResultgraphNodeInit(int nodenumber)// ����γ�
 	{
 		int a,b,d,e;
@@ -976,14 +1058,31 @@ public class Main// ����
 			}
 		}
 	}
+	public static void printresultgraph(int nodeNum)// ����γ�
+	{
+		int a,d;
+
+		for(d = 0;d<nodeNum;d++){
+			System.out.print("\t"+d);	
+		}
+		System.out.println();
+		for(a = 0;a<nodeNum;a++){
+			System.out.print(a+"\t");
+			for(d = 0;d<nodeNum;d++){
+				System.out.print(resultgraph_n[a][d]+"\t");	
+			}
+			System.out.println();
+		}
+	}
 	public static void DxandProInit(int maxlevel)// ����γ�
 	{
 		int a;
 		System.out.println("send here");
-		resultgraph_n = new double[maxlevel][maxlevel];
+		Dxofson = new double[maxlevel];
+		diffSonProExpthr = new double[maxlevel];
 		for(a = 0;a<maxlevel;a++){
-			Dxofson[a] = -1;
-			diffSonProExpthr[a] = -1;
+			Dxofson[a] = 0;
+			diffSonProExpthr[a] = 0;
 		}
 	}
 	private static void SendToNode(String nodeid, String command)// ��ĳ��ָ���Ľڵ㷢��һ������
@@ -1015,6 +1114,7 @@ public class Main// ����
 	
 	public static void BFStestinit(String neighborinform)  // �߳�����ʱ��ִ�д˺���
 	{
+		int i = 0;
 		int j = 0;
 		String lines[] = new String[8];
 		/*
@@ -1029,6 +1129,8 @@ public class Main// ����
 		*/
 		String str1 = "temp.txt"; 
 		try {
+			i = 0;
+			j = 0;
 			FileReader fr = new FileReader(str1);
 			BufferedReader br = new BufferedReader(fr);   
 			try {
@@ -1064,98 +1166,122 @@ public class Main// ����
 				System.out.println("command : "+command);
 				if (command.equals("NEIGHBOR")) // �����һ�����ھ���Ϣ
 				{
-
-					boolean found = false;
-					NodeInfo foundni = null;
-					System.out.println(Main.nodes.size());
-					//��ӡ��Ϣ
-					for (NodeInfo ni : Main.nodes)// �ڽڵ��б��в�������ڵ�
+					synchronized (Main.nodesLock)
 					{
-						if (ni.nodeID.equals(parts[1]))// ����ҵ���������ѭ��
-						{
-							found = true;
-							foundni = ni;
-							break;
-						}
-					}
-					if (found == false) // ���û���ҵ����򴴽�һ��������ӵ��ڵ��б���
-					{
-						foundni = new NodeInfo();
-						foundni.nodeID = parts[1];
-						foundni.rank = 0;
-						foundni.expthroughput = 0;
-						System.out.println("foundni.nodeID : "+foundni.nodeID);
-						foundni.radioInfo = new ArrayList<RadioInfo>();
-						Main.nodes.add(foundni);
-					}
-
-					found = false;
-					RadioInfo foundri = null;
-					for (RadioInfo ri : foundni.radioInfo)// ����ĳ���ڵ��ĳ��radio
-					{
-						if ((ri.radioNumber.equals(parts[2]))
-								&& (ri.assignedChannel == Integer.decode(parts[3]).intValue()))// ����ҵ�����Ҫradio��mac��ַ���ŵ��Ŷ�ƥ�䣩
-						{
-							found = true;
-							foundri = ri;
-						}
-					}
-					if (found == false)// ���û���ҵ����򴴽�һ��������ӵ�radio�б���
-					{
-						foundri = new RadioInfo();
-						foundri.radioNumber = parts[2];
-						System.out.println("foundri.radioNumber : "+foundri.radioNumber);
-						foundri.direction = "none";
-						foundri.mode = "none";
-						foundri.WDS = 1;
-						foundri.assignedChannel = Integer.decode(parts[3]).intValue();
-						foundri.neighborList = new ArrayList<NeighborInfo>();
-						foundni.radioInfo.add(foundri);
+						boolean found = false;
+						NodeInfo foundni = null;
 						//��ӡ��Ϣ
-					}
-
-					for (int i = 4; i < parts.length; i++)// �����ھ���Ϣ��ʣ�ಿ��
-					{
-						String s = parts[i];
-						if(s.equals("NONEIGHBOR")){
-							break;
-						}
-						//��ӡ��Ϣ
-						String[] parts2 = s.split("#");// ���ھ���Ϣ�Ծ���Ϊ�ָ����ֿ�
-						found = false;
-						NeighborInfo foundni2 = null;
-						//��ӡ��Ϣ
-						for (NeighborInfo ni : foundri.neighborList)// �����е��ھ��б��в�������ھ�
+						i = 0;
+						for (NodeInfo ni : Main.nodes)// �ڽڵ��б��в�������ڵ�
 						{
-							if (ni.neighborMac.equals(parts2[0]))// ����ҵ���������ѭ��
+							if (ni.nodeID.equals(parts[1]))// ����ҵ���������ѭ��
 							{
+								Main.nodesignal[i] = 1;
 								found = true;
-								foundni2 = ni;
+								foundni = ni;
 								break;
 							}
+							i+=1;
 						}
-						if (found == false)// ���û���ҵ������´���һ���ھ���Ϣ��Ŀ
+						if (found == false) // ���û���ҵ����򴴽�һ��������ӵ��ڵ��б���
 						{
-							foundni2 = new NeighborInfo();
-							foundni2.neighborMac = parts2[0];
-							System.out.println("parts2[0] : "+parts2[0]);
-							foundri.neighborList.add(foundni2);
+							foundni = new NodeInfo();
+							foundni.nodeID = parts[1];
+							foundni.rank = 0;
+							foundni.expthroughput = 0;
+							System.out.println("foundni.nodeID : "+foundni.nodeID);
+							foundni.radioInfo = new ArrayList<RadioInfo>();
+							//DataOperation.appendnode(foundni);
+							Main.nodes.add(foundni);
 						}
-						for(int t = 0;t<7;t++){
-							System.out.println("t:"+t+" "+parts2[t]);
+
+						found = false;
+						RadioInfo foundri = null;
+						j = 0;
+						for (RadioInfo ri : foundni.radioInfo)// ����ĳ���ڵ��ĳ��radio
+						{
+							if (ri.radioNumber.equals(parts[2]))// ����ҵ�����Ҫradio��mac��ַ���ŵ��Ŷ�ƥ�䣩
+							 
+							{//???�ŵ�ҲҪһ�£��Ƿ�һ����ͬ
+								found = true;
+								foundri = ri;
+								foundri.disabled = 0;
+								if(i != Main.nodes.size()){
+									Main.radiosignal[i][j] = 1;
+								}
+							}
+							j++;
 						}
-						
-						
-						foundni2.signal = Double.parseDouble(parts2[1]);
-						foundni2.noise = Double.parseDouble(parts2[2]);
-						foundni2.tx_rate = Double.parseDouble(parts2[3]);
-						foundni2.tx_QAM = parts2[4];
-						foundni2.rx_rate = Double.parseDouble(parts2[5]);
-						foundni2.rx_QAM = parts2[6];
-						foundni2.rate = 0.5*foundni2.tx_rate;// �洢�ھӵ���Ϣ
-						System.out.println("foundni2 : r:"+foundni2.rate+" s:"+foundni2.signal +" n:"+foundni2.noise +" t:"+
-						foundni2.tx_rate +" tq:"+foundni2.tx_QAM +" r:"+foundni2.rx_rate +" rq:"+foundni2.rx_QAM );
-						//��ӡ��Ϣ
+						//在这里，旧的radio信息要被替换掉！！！
+						if (found == false)// ���û���ҵ����򴴽�һ��������ӵ�radio�б���
+						{
+							
+							foundri = new RadioInfo();
+							foundri.radioNumber = parts[2];
+							
+							//foundri.load = Double.valueOf(parts[3])/((Main.endtime-Main.starttime)/1000);
+							
+							foundri.load = Double.valueOf(parts[3])/((1)/1000);
+							System.out.println("foundri.radioNumber : "+foundri.radioNumber);
+							foundri.direction = "none";
+							foundri.mode = "none";
+							foundri.WDS = 1;
+							foundri.disabled = 0;
+							foundri.assignedChannel = 36;
+							foundri.neighborList = new ArrayList<NeighborInfo>();
+							foundni.radioInfo.add(foundri);
+							//DataOperation.appendradio(foundni.nodeID, foundri);
+							//��ӡ��Ϣ
+						}
+						foundri.disabled = 0;
+
+						for (i = 4; i < parts.length; i++)// �����ھ���Ϣ��ʣ�ಿ��
+						{
+							String s = parts[i];
+							//��ӡ��Ϣ
+							String[] parts2 = s.split("#");// ���ھ���Ϣ�Ծ���Ϊ�ָ����ֿ�
+							found = false;
+							NeighborInfo foundni2 = null;
+							//��ӡ��Ϣ
+							for (NeighborInfo ni : foundri.neighborList)// �����е��ھ��б��в�������ھ�
+							{
+								if (ni.neighborMac.equals(parts2[0]))// ����ҵ���������ѭ��
+								{
+									found = true;
+									foundni2 = ni;
+									break;
+								}
+							}
+							if (found == false)// ���û���ҵ������´���һ���ھ���Ϣ��Ŀ
+							{
+								foundni2 = new NeighborInfo();
+								foundni2.neighborMac = parts2[0];
+								System.out.println("parts2[0] : "+parts2[0]);
+								foundri.neighborList.add(foundni2);
+							}
+							for(int t = 0;t<7;t++){
+								System.out.println("t:"+t+" "+parts2[t]);
+							}
+							
+							
+							foundni2.signal = Double.parseDouble(parts2[1]);
+							foundni2.noise = Double.parseDouble(parts2[2]);
+							foundni2.tx_rate = Double.parseDouble(parts2[3]);
+							foundni2.tx_QAM = parts2[4];
+							foundni2.rx_rate = Double.parseDouble(parts2[5]);
+							foundni2.rx_QAM = parts2[6];
+							foundni2.rate = 0.5*foundni2.tx_rate;// �洢�ھӵ���Ϣ
+							System.out.println("foundni2 : r:"+foundni2.rate+" s:"+foundni2.signal +" n:"+foundni2.noise +" t:"+
+							foundni2.tx_rate +" tq:"+foundni2.tx_QAM +" r:"+foundni2.rx_rate +" rq:"+foundni2.rx_QAM );
+							//��ӡ��Ϣ
+							/*
+							if (found == false)
+								DataOperation.appendneighbor(foundni.nodeID, foundri.radioNumber, foundni2);
+							else 
+								//DataOperation.setneighbor(foundni.nodeID, foundri.radioNumber, foundni2.neighborMac,foundni2);
+								 * 
+								 */
+						}
 					}
 				}
 				j++;
@@ -1277,7 +1403,7 @@ class ConnectionThreadReceive extends Thread
 							foundni.expthroughput = 0;
 							System.out.println("foundni.nodeID : "+foundni.nodeID);
 							foundni.radioInfo = new ArrayList<RadioInfo>();
-							DataOperation.appendnode(foundni);
+							//DataOperation.appendnode(foundni);
 							Main.nodes.add(foundni);
 						}
 
@@ -1304,7 +1430,8 @@ class ConnectionThreadReceive extends Thread
 							
 							foundri = new RadioInfo();
 							foundri.radioNumber = parts[2];
-							foundri.load = Double.valueOf(parts[3])/((Main.endtime-Main.starttime)/1000);
+							//foundri.load = Double.valueOf(parts[3])/((Main.endtime-Main.starttime)/1000);
+							foundri.load = Double.valueOf(parts[3])/((1)/1000);
 							System.out.println("foundri.radioNumber : "+foundri.radioNumber);
 							foundri.direction = "none";
 							foundri.mode = "none";
@@ -1313,7 +1440,7 @@ class ConnectionThreadReceive extends Thread
 							foundri.assignedChannel = 36;
 							foundri.neighborList = new ArrayList<NeighborInfo>();
 							foundni.radioInfo.add(foundri);
-							DataOperation.appendradio(foundni.nodeID, foundri);
+							//DataOperation.appendradio(foundni.nodeID, foundri);
 							//��ӡ��Ϣ
 						}
 						foundri.disabled = 0;
@@ -1357,10 +1484,13 @@ class ConnectionThreadReceive extends Thread
 							System.out.println("foundni2 : r:"+foundni2.rate+" s:"+foundni2.signal +" n:"+foundni2.noise +" t:"+
 							foundni2.tx_rate +" tq:"+foundni2.tx_QAM +" r:"+foundni2.rx_rate +" rq:"+foundni2.rx_QAM );
 							//��ӡ��Ϣ
+							/*
 							if (found == false)
 								DataOperation.appendneighbor(foundni.nodeID, foundri.radioNumber, foundni2);
 							else 
-								DataOperation.setneighbor(foundni.nodeID, foundri.radioNumber, foundni2.neighborMac,foundni2);
+								//DataOperation.setneighbor(foundni.nodeID, foundri.radioNumber, foundni2.neighborMac,foundni2);
+								 * 
+								 */
 						}
 					}
 				}
