@@ -24,13 +24,23 @@ public class Main// ����
 	public static double[][][][] NeiInforArrary;
 	public static double[][][][] resultgraph_r;
 	public static double[][] resultgraph_n;
+	public static int maxlevel;
+	public static int [][] visited;
+	public static double [][] resultTemp;
+	public static String[] results;
 	
 	public static double [] Dxofson;
 	public static double [] diffSonProExpthr;
 	
+	public static double [] Dxofson_pre = new double[Main.maxlevel];
+	public static double [] diffSonProExpthr_pre= new double[Main.maxlevel];
+	
+	public static int radiocount_channel = 0;
+	public static int radiocount_load = 0;
+	
 	public static String rootMacaddr;
 	public static int radionum = 2;//改成可配置的
-	public static int nodenum = 0;//改成可配置的
+	public static int nodenum = 5;//改成可配置的
 	public static int channel1 = 36;
 	public static int channel2 = 149;
 	public static double orithroughput = 500.0;
@@ -45,6 +55,12 @@ public class Main// ����
 	public static int [][] radiosignal;
 	public static long starttime = 0;
 	public static long endtime = 0;
+	//两个单位是分钟
+	public static int channelduration = 1440;
+	public static int balanceduration = 5;
+	public static int maxloadbalance = 10;
+	
+
 	
 	
 	
@@ -53,12 +69,16 @@ public class Main// ����
 		int i = 0;
 		int j = 0;
 		
-
+		System.out.println("start");
 		//DataOperation.connect("jdbc:sqlite:MRMCmeshData.db");
 		Connections.receiveList = new ArrayList<ConnectionThreadReceive>();// ��ʼ�������б�
+		System.out.println("start");
 		Connections.receiveListLock = new Object();
+		System.out.println("start");
 		Connections.sendCommandList = new ArrayList<ConnectionThreadSendCommand>();
+		System.out.println("start");
 		Connections.sendCommandListLock = new Object();
+		System.out.println("start");
 //�޸ĸ��ڵ��ַ
 		
 		
@@ -73,14 +93,20 @@ public class Main// ����
 		minSNR = -66.0;
 		bottomSNR= -80.0;
 		enableLB = 0;
+		channelduration = 1440;
+		balanceduration = 5;
 		getconfig();
+		
 		//չʾ���е�������Ϣ
 		System.out.println("configs:"+rootMacaddr+" "+radionum+" "+nodenum+" "+channel1+" "+channel2+" "+orithroughput
 				+" "+Minthroughput+" "+throughput66+" "+throughput75+" "+attenuation+
-				" "+minSNR+" "+bottomSNR);
+				" "+minSNR+" "+bottomSNR+" "+enableLB+" "+channelduration+" "+balanceduration);
 		System.out.println(System.currentTimeMillis());
+		visited = new int[nodenum][radionum];
+		resultTemp = new double[nodenum][radionum];
 		nodesignal = new int [nodenum];
 		radiosignal = new int [nodenum][Main.radionum];
+		results = new String[nodenum];
 		for(i = 0;i<nodenum;i++){
 			nodesignal[i] = 0;
 		}
@@ -161,6 +187,7 @@ public class Main// ����
 			String line = neighborinform;
 			while (neighborinform != null) {
 				line = neighborinform;
+				System.out.println(line);
 				line.replace("\r", ""); // ȥ����β�Ļ��з�
 				line.replace("\n", "");
 				String[] parts = line.split(" "); // �Կո�Ϊ�ָ������Խ��յ���һ�н��зָ�
@@ -204,6 +231,12 @@ public class Main// ����
 				else if(configs.equals("enableLB")){
 					enableLB = Integer.parseInt(parts[1]);
 				}
+				else if(configs.equals("channelduration")){
+					channelduration = Integer.parseInt(parts[1]);
+				}
+				else if(configs.equals("balanceduration")){
+					balanceduration = Integer.parseInt(parts[1]);
+				}
 				else continue;
 				j++;
 				try {
@@ -230,13 +263,11 @@ public class Main// ����
 		////getNodeLoad();
 		////System.out.println("send here");
 		
+		SendToNode("04:F0:21:36:E5:59", "SETLINK 04:F0:21:36:E5:59#36#Link3C#ap#1 04:F0:21:3B:F4:A9#149#LinkAD#ap#1");
+		//SendToNode("04:F0:21:39:C1:60", "SETLINK 04:F0:21:39:C1:5F#36#link3C#sta#1 04:F0:21:39:C1:60#DISABLED");
+		//SendToNode("04:F0:21:4B:4C:A4", "SETLINK 04:F0:21:4B:4C:A4#36#link3C#sta#1 04:F0:21:35:27:CF#DISABLED");
 		
-		//SendToNode("04:F0:21:39:64:26", "SETLINK 04:F0:21:39:64:26#DISABLED 04:F0:21:39:64:25#36#link203");
-		//SendToNode("04:F0:21:39:64:20", "SETLINK 04:F0:21:39:64:20#6#link204 04:F0:21:39:64:1F#36#link203");
-		//SendToNode("04:F0:21:39:64:06", "SETLINK 04:F0:21:39:64:06#6#link204 04:F0:21:39:64:05#DISABLED");
-		
-		
-		BFSofMRMC();
+		//BFSofMRMC();
 		////Main.starttime = System.currentTimeMillis();
 		
 		
@@ -271,7 +302,7 @@ public class Main// ����
 	}
 	public static void BFSofMRMC(){// MRMC�ĳ����㷨�������������
 		//���ļ��ķ�ʽ
-		BFStestinit("");
+		//BFStestinit("");
 		//������־
 		int i,j,k,q= 0;
 		int tmpj = -1,tmpk = -1;//���ڻ���Ԥ��ѡ���ھӽڵ�
@@ -300,7 +331,7 @@ public class Main// ����
 		int radioNo = 0;
 		int nodeNum = 0;
 		int radioNum = 0;
-		int maxlevel = 0;
+		maxlevel = 0;
 		double maxthroughput = -1;
 		double tmpthroughput;
 		
@@ -318,10 +349,10 @@ public class Main// ����
 			}
 		}
 		radionum = radioNum;
-		int [][] visited = new int [nodeNum][radioNum];
+		//int [][] visited = new int [nodeNum][radioNum];
 		int [][] signaled = new int [nodeNum][radioNum];
-		double[][] resultTemp = new double[nodeNum][radioNum];
-		String[] results = new String[nodeNum];
+		//double[][] resultTemp = new double[nodeNum][radioNum];
+		
 		System.out.print( "Radio number:"+radioNum+" node number:"+nodeNum+"\n");
 		//չʾ��ǰ̨
 
@@ -1085,15 +1116,15 @@ public class Main// ����
 			diffSonProExpthr[a] = 0;
 		}
 	}
-	private static void SendToNode(String nodeid, String command)// ��ĳ��ָ���Ľڵ㷢��һ������
+	public static void SendToNode(String nodeid, String command)// ��ĳ��ָ���Ľڵ㷢��һ������
 	{
 		ConnectionThreadSendCommand ctsc = null;
 		synchronized (Connections.sendCommandListLock)// ���������������б����
 		{
 			for (ConnectionThreadSendCommand c : Connections.sendCommandList)// �ڷ������������б��У��ҵ�nodeid��ͬ������
 			{
-				System.out.println("nodeID : "+c.nodeID);
-				System.out.println("nodeid : "+nodeid);
+				//System.out.println("nodeID : "+c.nodeID);
+				//System.out.println("nodeid : "+nodeid);
 				if (c.nodeID.equals(nodeid))
 				{
 					System.out.println("ctsc = c");
@@ -1340,6 +1371,8 @@ class ServerThreadReceive extends Thread // ���̼߳������ڽ�
 
 class ConnectionThreadReceive extends Thread
 {
+
+	public static int flag = 0;
 	private Socket connection; // ��ͻ��˽���������
 
 	ConnectionThreadReceive(Socket socket) // ���췽������һ����ͻ��˵�������Ϊ����
@@ -1352,13 +1385,14 @@ class ConnectionThreadReceive extends Thread
 	{
 		int i = 0;
 		int j = 0;
-		
+		int k = 0;
+		int l= 0;
+		flag = 0;
 		//二维数组
 		InputStream is;
 		Scanner scanner = null;
 		try
 		{
-			
 			i = 0;
 			j = 0;
 			is = connection.getInputStream(); // ��ȡTCP���ӵ�������
@@ -1378,6 +1412,7 @@ class ConnectionThreadReceive extends Thread
 				System.out.println("command : "+command);
 				if (command.equals("NEIGHBOR")) // �����һ�����ھ���Ϣ
 				{
+					
 					synchronized (Main.nodesLock)
 					{
 						boolean found = false;
@@ -1386,6 +1421,7 @@ class ConnectionThreadReceive extends Thread
 						i = 0;
 						for (NodeInfo ni : Main.nodes)// �ڽڵ��б��в�������ڵ�
 						{
+							
 							if (ni.nodeID.equals(parts[1]))// ����ҵ���������ѭ��
 							{
 								Main.nodesignal[i] = 1;
@@ -1491,6 +1527,98 @@ class ConnectionThreadReceive extends Thread
 								//DataOperation.setneighbor(foundni.nodeID, foundri.radioNumber, foundni2.neighborMac,foundni2);
 								 * 
 								 */
+						}
+					}
+					Main.radiocount_channel++;
+					if(Main.radiocount_channel >= Main.radionum*Main.nodenum){
+						try {
+							//注意两个循环可能会碰在一起，到时候跳过一次balance
+							Thread.currentThread().sleep(6*1000);
+						} catch (InterruptedException e1) {
+							// TODO Auto-generated catch block
+							e1.printStackTrace();
+						}
+						Main.radiocount_channel = 0;
+						Main.SendConfiguration();
+					}
+				}
+				else if(command.equals("LOAD")) // �����һ�����ھ���Ϣ
+				{
+					synchronized (Main.nodesLock)
+					{
+						NodeInfo foundni = null;
+						//��ӡ��Ϣ
+						i = 0;
+						for (NodeInfo ni : Main.nodes)// �ڽڵ��б��в�������ڵ�
+						{
+							if (ni.nodeID.equals(parts[1]))// ����ҵ���������ѭ��
+							{
+								Main.nodesignal[i] = 1;
+								foundni = ni;
+								break;
+							}
+							i+=1;
+						}
+						RadioInfo foundri = null;
+						j = 0;
+						for (RadioInfo ri : foundni.radioInfo)// ����ĳ���ڵ��ĳ��radio
+						{
+							if (ri.radioNumber.equals(parts[2]))// ����ҵ�����Ҫradio��mac��ַ���ŵ��Ŷ�ƥ�䣩
+							 
+							{//???�ŵ�ҲҪһ�£��Ƿ�һ����ͬ
+								foundri = ri;
+								foundri.disabled = 0;
+								foundri.load = Double.valueOf(parts[3])/(Main.balanceduration*60*1000);
+								if(i != Main.nodes.size()){
+									Main.radiosignal[i][j] = 1;
+								}
+							}
+							j++;
+						}
+					}
+					Main.radiocount_load++;
+					if(Main.radiocount_load >= Main.radionum*Main.nodenum){
+						try {
+							//注意两个循环可能会碰在一起，到时候跳过一次balance
+							Thread.currentThread().sleep(6*1000);
+						} catch (InterruptedException e1) {
+							// TODO Auto-generated catch block
+							e1.printStackTrace();
+						}
+						Main.radiocount_load = 0;
+						
+						for(k = 0;k<Main.maxloadbalance;k++){
+							
+							Main.loadbalance(Main.nodenum,Main.radionum,Main.visited,Main.resultTemp);
+							for (i = 0;i<Main.maxlevel;i++){
+								Main.Dxofson_pre[i] = Main.Dxofson[i];
+								Main.diffSonProExpthr_pre[i] = Main.diffSonProExpthr[i];
+							}
+							Main.DxandProInit(Main.maxlevel);
+							Main.balanceEstimate(Main.nodenum,Main.radionum,Main.maxlevel);//展示estimate结果
+							for (i = 0;i<Main.maxlevel;i++){
+								if(Main.Dxofson_pre[i] != Main.Dxofson[i] || Main.diffSonProExpthr_pre[i] != Main.diffSonProExpthr[i]){
+									flag = 1;
+									break;
+								}
+							}
+							if(flag == 1) break;
+						}
+						for (i = 0;i<Main.maxlevel;i++){
+							Main.Dxofson_pre[i] = 0;
+							Main.diffSonProExpthr_pre[i] = 0;
+						}
+						flag = 0;
+						Main.printresultgraph(Main.nodenum);
+						Main.results = Main.getresult(Main.nodenum,Main.radionum,Main.resultTemp,Main.results);
+						System.out.println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
+						for(int a = 0;a<Main.nodenum;a++){
+							System.out.println("rank "+ Main.nodes.get(a).rank);
+							System.out.println("throughput "+ Main.nodes.get(a).expthroughput);
+							System.out.println(Main.results[a]);	
+						}
+						for(int a = 0;a<Main.nodenum;a++){
+							Main.SendToNode(Main.nodes.get(a).nodeID, Main.results[a]);
 						}
 					}
 				}
@@ -1642,7 +1770,7 @@ class ConnectionThreadSendCommand extends Thread// ���ڷ������
 		int j = 0;
 		System.out.println("sendCommand, "+command);
 		if (command.equals("DISCOVER \r\n")){
-			Main.endtime = System.currentTimeMillis();
+			//Main.endtime = System.currentTimeMillis();
 			Main.nodesignal = new int [Main.nodes.size()];
 			Main.radiosignal = new int [Main.nodes.size()][Main.radionum];
 			for(i = 0;i<Main.nodes.size();i++){

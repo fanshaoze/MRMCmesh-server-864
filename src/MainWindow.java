@@ -36,7 +36,7 @@ public class MainWindow extends JFrame// ������
 		/**modified by zhangjian start*/
 		JButton b2 = new JButton();// �ھӷ��ְ�ť
 		b2.setBounds(10, 120, 300, 100);// ���ð�ť��λ��
-		b2.setText("邻居发现");// ��ť����ʾ������
+		b2.setText("开始邻居发现");// ��ť����ʾ������
 		b2.addActionListener(new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)// ��ť�����ʱ��Ҫִ�еĲ���
@@ -45,7 +45,15 @@ public class MainWindow extends JFrame// ������
 				{
 					for(ConnectionThreadSendCommand ctsc:Connections.sendCommandList)
 					{
+						/*
+						try {
+							Thread.currentThread().sleep(Main.channelduration*60*1000);
+						} catch (InterruptedException e1) {
+							// TODO Auto-generated catch block
+							e1.printStackTrace();
+						}*/
 						ctsc.sendCommand("DISCOVER \r\n");
+						
 					}					
 				}
 				
@@ -53,12 +61,42 @@ public class MainWindow extends JFrame// ������
 		});
 		add(b2);// �������ť��ӵ�������
 		/**modified by zhangjian end*/
-		
-		
+
 		/**modified by zhangjian start*/
 		
+		JButton b3 = new JButton();// �ھӷ��ְ�ť
+		b3.setBounds(10, 230, 300, 100);// ���ð�ť��λ��
+		b3.setText("开始负载均衡");// ��ť����ʾ������
+		b3.addActionListener(new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)// ��ť�����ʱ��Ҫִ�еĲ���
+			{
+				synchronized (Connections.sendCommandListLock)
+				{
+					for(ConnectionThreadSendCommand ctsc:Connections.sendCommandList)
+					{
+						/*
+						try {
+							//注意两个循环可能会碰在一起，到时候跳过一次balance
+							Thread.currentThread().sleep(Main.balanceduration*60*1000);
+						} catch (InterruptedException e1) {
+							// TODO Auto-generated catch block
+							e1.printStackTrace();
+						}*/
+						ctsc.sendCommand("LOADBALANCE \r\n");
+						
+					}					
+				}
+				
+			}
+		});
+		add(b3);// �������ť��ӵ�������
+		
+		
+		
+		
 		jta=new JTextArea();
-		jta.setBounds(10, 230, 300, 30);
+		jta.setBounds(10, 340, 300, 30);
 		jta.setForeground(Color.BLACK);
 		jta.setEditable(false);
 		jta.setFont(new Font("宋体",Font.CENTER_BASELINE,16));

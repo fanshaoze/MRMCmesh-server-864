@@ -1,6 +1,6 @@
-rootMacaddr 04:F0:21:39:C1:91
+rootMacaddr 04:F0:21:36:E5:59
 radionum 2
-nodenum 5
+nodenum 1
 channel1 36
 channel2 149
 orithroughput 500.0
@@ -10,4 +10,6 @@ throughput75 300.0
 attenuation 0.15
 minSNR -66.0
 bottomSNR -80.0
-enableLB 1
+enableLB 0
+channelduration 1440
+balanceduration 5
